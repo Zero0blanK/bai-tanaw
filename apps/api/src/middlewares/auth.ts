@@ -10,6 +10,11 @@ import { verifyAccessToken } from '../utils/jwt.js';
  * role changes apply immediately (the token's role claim is only a hint for the client).
  */
 export const authenticate: RequestHandler = async (req, _res, next) => {
+  // Several routers share a path prefix (e.g. /targets); authenticate once per request.
+  if (req.user) {
+    next();
+    return;
+  }
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : undefined;
   if (!token) throw new AuthenticationError(MESSAGES.TOKEN_REQUIRED);
