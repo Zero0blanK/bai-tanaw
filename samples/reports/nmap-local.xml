@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sV -T3 -Pn -p 8787 -oX - localhost" version="7.95">
+<host><status state="up" reason="user-set"/>
+<address addr="127.0.0.1" addrtype="ipv4"/>
+<hostnames><hostname name="localhost" type="user"/></hostnames>
+<ports><port protocol="tcp" portid="8787"><state state="open" reason="syn-ack"/><service name="http" product="workerd" version="1.2026" method="probed" conf="10"/></port></ports>
+</host></nmaprun>

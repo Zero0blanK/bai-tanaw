@@ -1,0 +1,99 @@
+# Tanaw local stack.
+#   Infrastructure only (works today):  docker compose up -d postgres redis zap
+#   Everything (after the apps exist):   docker compose --profile app up -d --build
+name: tanaw
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tanaw}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-tanaw}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tanaw}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  # OWASP ZAP in daemon mode. The worker drives it through the ZAP API (spider + passive scan).
+  # Bound to localhost only; never expose this port publicly.
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    restart: unless-stopped
+    command: >
+      zap.sh -daemon -host 0.0.0.0 -port 8090
+      -config api.key=${ZAP_API_KEY:-change-me-zap-key}
+      -config api.addrs.addr.name=.*
+      -config api.addrs.addr.regex=true
+    ports:
+      - "127.0.0.1:8090:8090"
+
+  # ── Application services (enable with --profile app once they are built) ──
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tanaw}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-tanaw}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "4000:4000"
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tanaw}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-tanaw}
+      REDIS_URL: redis://redis:6379
+      ZAP_API_URL: http://zap:8090
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      zap:
+        condition: service_started
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:

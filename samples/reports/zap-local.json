@@ -1,0 +1,5 @@
+{"@programName":"ZAP","site":[{"@name":"http://localhost:8787","@host":"localhost","@port":"8787","alerts":[
+{"pluginid":"10038","alert":"Content Security Policy (CSP) Header Not Set","riskcode":"2","confidence":"3","riskdesc":"Medium (High)","desc":"<p>CSP is not set.</p>","solution":"<p>Set a CSP header.</p>","cweid":"693","wascid":"15","count":"1",
+"instances":[{"uri":"http://localhost:8787/api/health","method":"GET","param":"","evidence":""}]},
+{"pluginid":"10021","alert":"X-Content-Type-Options Header Missing","riskcode":"1","confidence":"2","riskdesc":"Low (Medium)","desc":"<p>Missing header.</p>","solution":"<p>Set nosniff.</p>","cweid":"693","wascid":"15","count":"1",
+"instances":[{"uri":"http://localhost:8787/api/docs","method":"GET","param":"","evidence":"Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig12345"}]}]}]}

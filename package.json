@@ -1,0 +1,26 @@
+{
+  "name": "tanaw",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tanaw: AI-assisted security assessment and vulnerability analysis platform (CS24 final project)",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "infra:up": "docker compose up -d postgres redis zap",
+    "infra:down": "docker compose down",
+    "dev:api": "npm run dev --workspace @tanaw/api",
+    "dev:worker": "npm run dev --workspace @tanaw/worker",
+    "dev:web": "npm run dev --workspace @tanaw/web",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}
