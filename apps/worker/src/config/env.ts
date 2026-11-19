@@ -1,0 +1,46 @@
+// Validates every environment variable the worker needs at startup (AGENT.md §9).
+
+import { parseAllowedHosts } from '@tanaw/shared';
+import { z } from 'zod';
+
+const bool = z.enum(['true', 'false']).default('false').transform((v) => v === 'true');
+
+const EnvSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DATABASE_URL: z.string().min(1).optional(),
+  REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+
+  ASSESSMENT_ALLOWED_HOSTS: z.string().default(''),
+
+  NMAP_BIN: z.string().default('nmap'),
+  NMAP_DEFAULT_PORTS: z.string().default('80,443'),
+  TOOL_TIMEOUT_MS: z.coerce.number().int().min(1000).default(900_000),
+  ZAP_API_URL: z.url().default('http://localhost:8090'),
+  ZAP_API_KEY: z.string().optional(),
+  ZAP_ACTIVE_SCAN_ENABLED: bool,
+
+  AI_PROVIDER: z.enum(['openai', 'ollama']).default('openai'),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
+  OLLAMA_URL: z.url().default('http://localhost:11434'),
+  OLLAMA_MODEL: z.string().default('llama3.1:8b'),
+  AI_MAX_INPUT_CHARS: z.coerce.number().int().min(1000).max(100_000).default(12_000),
+
+  STORAGE_LOCAL_DIR: z.string().default('./storage'),
+});
+
+export type Env = z.infer<typeof EnvSchema> & { ALLOWED_HOSTS: string[] };
+
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v !== ''));
+  const parsed = EnvSchema.safeParse(cleaned);
+  if (!parsed.success) {
+    const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
+    process.stderr.write(`Invalid environment configuration:\n${lines.join('\n')}\n`);
+    process.exit(1);
+  }
+  return { ...parsed.data, ALLOWED_HOSTS: parseAllowedHosts(parsed.data.ASSESSMENT_ALLOWED_HOSTS) };
+}
+
+export const env = loadEnv();
