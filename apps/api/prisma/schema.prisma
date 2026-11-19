@@ -1,0 +1,377 @@
+// Tanaw database schema (PostgreSQL). Enum values mirror packages/shared/src/enums: change both together.
+// Actor columns (created_by, started_by, assessor_id, ...) are real FKs to users with onDelete: SetNull,
+// so deleting a user keeps the assessment and audit history.
+// docs/schema.md documents every table; update it in the same commit as this file.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Accounts, sessions, audit ───────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  ASSESSOR
+  VIEWER
+}
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  email                 String    @unique
+  password_hash         String
+  name                  String
+  role                  Role      @default(VIEWER)
+  is_active             Boolean   @default(true)
+  failed_login_attempts Int       @default(0)
+  locked_until          DateTime?
+  last_login_at         DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  refresh_tokens    RefreshToken[]
+  audit_logs        AuditLog[]
+  targets_created   AssessmentTarget[]
+  scans_started     Scan[]
+  evidence_created  Evidence[]
+  ai_analyses       AiAnalysis[]
+  verification_logs VerificationLog[]
+  jobs_created      Job[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  /// HMAC-SHA256 of the raw token (keyed with JWT_REFRESH_SECRET). The raw token only lives in the cookie.
+  token_hash  String    @unique
+  expires_at  DateTime
+  revoked_at  DateTime?
+  /// Set when this token was rotated; reuse of a rotated token revokes every session of the user.
+  replaced_by String?   @db.Uuid
+  user_agent  String?
+  ip          String?
+  created_at  DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actor_id   String?  @db.Uuid
+  /// snake_case event name, e.g. login_success, login_failed, scope_blocked, finding_verified
+  action     String
+  target_id  String?  @db.Uuid
+  metadata   Json?
+  ip         String?
+  created_at DateTime @default(now())
+
+  actor  User?             @relation(fields: [actor_id], references: [id], onDelete: SetNull)
+  target AssessmentTarget? @relation(fields: [target_id], references: [id], onDelete: SetNull)
+
+  @@index([created_at])
+  @@index([actor_id, created_at])
+  @@index([action, created_at])
+  @@map("audit_logs")
+}
+
+// ─── Targets and scope ───────────────────────────────────────────────────────
+
+model AssessmentTarget {
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String
+  base_url           String
+  description        String?
+  authorization_note String?
+  test_window_start  DateTime?
+  test_window_end    DateTime?
+  created_by         String?   @db.Uuid
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  creator     User?       @relation(fields: [created_by], references: [id], onDelete: SetNull)
+  scope_rules ScopeRule[]
+  scans       Scan[]
+  findings    Finding[]
+  audit_logs  AuditLog[]
+
+  @@map("assessment_targets")
+}
+
+enum ScopeAssetType {
+  HOST
+  URL
+  PORT_RANGE
+}
+
+model ScopeRule {
+  id         String         @id @default(uuid()) @db.Uuid
+  target_id  String         @db.Uuid
+  asset_type ScopeAssetType
+  value      String
+  in_scope   Boolean        @default(true)
+  notes      String?
+  created_at DateTime       @default(now())
+
+  target AssessmentTarget @relation(fields: [target_id], references: [id], onDelete: Cascade)
+
+  @@index([target_id])
+  @@map("scope_rules")
+}
+
+// ─── Scans and results ───────────────────────────────────────────────────────
+
+enum ScanTool {
+  HTTP_CHECK
+  DNS
+  OPENAPI
+  NMAP
+  ZAP
+  MANUAL
+}
+
+enum ScanSource {
+  WORKER
+  IMPORT
+}
+
+enum ScanStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Scan {
+  id              String     @id @default(uuid()) @db.Uuid
+  target_id       String     @db.Uuid
+  tool            ScanTool
+  source          ScanSource
+  status          ScanStatus @default(QUEUED)
+  params          Json?
+  /// Path under STORAGE_LOCAL_DIR of the raw tool output or uploaded report.
+  raw_output_path String?
+  error           String?
+  started_by      String?    @db.Uuid
+  started_at      DateTime?
+  finished_at     DateTime?
+  created_at      DateTime   @default(now())
+
+  target   AssessmentTarget @relation(fields: [target_id], references: [id], onDelete: Cascade)
+  starter  User?            @relation(fields: [started_by], references: [id], onDelete: SetNull)
+  results  ScanResult[]
+  findings Finding[]
+
+  @@index([target_id, created_at])
+  @@index([status])
+  @@map("scans")
+}
+
+enum ScanResultType {
+  PORT
+  SERVICE
+  DNS_RECORD
+  ENDPOINT
+  ALERT
+  HEADER
+  COOKIE
+  CORS
+  REDIRECT
+}
+
+model ScanResult {
+  id         String         @id @default(uuid()) @db.Uuid
+  scan_id    String         @db.Uuid
+  type       ScanResultType
+  /// Shape depends on type: see packages/shared/src/schemas/scanResults.ts
+  data       Json
+  created_at DateTime       @default(now())
+
+  scan     Scan       @relation(fields: [scan_id], references: [id], onDelete: Cascade)
+  evidence Evidence[]
+
+  @@index([scan_id, type])
+  @@map("scan_results")
+}
+
+// ─── Findings, evidence, AI, verification ────────────────────────────────────
+
+enum FindingCategory {
+  AUTHENTICATION
+  ACCESS_CONTROL
+  SECURITY_CONFIG
+}
+
+enum FindingSource {
+  TOOL
+  AI
+  MANUAL
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum FindingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  FALSE_POSITIVE
+  FIXED
+}
+
+model Finding {
+  id             String          @id @default(uuid()) @db.Uuid
+  target_id      String          @db.Uuid
+  scan_id        String?         @db.Uuid
+  title          String
+  category       FindingCategory
+  description    String
+  affected_asset String
+  source         FindingSource
+  ai_severity    Severity?
+  final_severity Severity?
+  cvss_vector    String?
+  cvss_score     Float?
+  owasp_top10    String?
+  wstg_id        String?
+  /// Only PATCH /api/findings/:id/verify changes this. AI and tools only ever create PENDING.
+  status         FindingStatus   @default(PENDING)
+  remediation    String?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  target            AssessmentTarget  @relation(fields: [target_id], references: [id], onDelete: Cascade)
+  scan              Scan?             @relation(fields: [scan_id], references: [id], onDelete: SetNull)
+  evidence          Evidence[]
+  ai_analyses       AiAnalysis[]
+  verification_logs VerificationLog[]
+
+  @@index([target_id, status])
+  @@index([scan_id])
+  @@map("findings")
+}
+
+enum EvidenceType {
+  SCREENSHOT
+  HTTP_EXCHANGE
+  TOOL_OUTPUT
+}
+
+model Evidence {
+  id             String       @id @default(uuid()) @db.Uuid
+  finding_id     String       @db.Uuid
+  scan_result_id String?      @db.Uuid
+  type           EvidenceType
+  /// Path under STORAGE_LOCAL_DIR (screenshots, raw files).
+  file_path      String?
+  content        String?
+  created_by     String?      @db.Uuid
+  created_at     DateTime     @default(now())
+
+  finding     Finding     @relation(fields: [finding_id], references: [id], onDelete: Cascade)
+  scan_result ScanResult? @relation(fields: [scan_result_id], references: [id], onDelete: SetNull)
+  creator     User?       @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([finding_id])
+  @@map("evidence")
+}
+
+enum AiTask {
+  INTERPRET
+  REMEDIATE
+}
+
+/// Every AI call is recorded, so the report can show what the AI said and when.
+model AiAnalysis {
+  id         String   @id @default(uuid()) @db.Uuid
+  scan_id    String?  @db.Uuid
+  finding_id String?  @db.Uuid
+  task       AiTask
+  provider   String
+  model      String
+  /// SHA-256 of the redacted input actually sent.
+  input_hash String
+  output     Json
+  tokens_in  Int?
+  tokens_out Int?
+  created_by String?  @db.Uuid
+  created_at DateTime @default(now())
+
+  finding Finding? @relation(fields: [finding_id], references: [id], onDelete: Cascade)
+  creator User?    @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([scan_id])
+  @@index([finding_id])
+  @@index([created_by, created_at])
+  @@map("ai_analyses")
+}
+
+model VerificationLog {
+  id          String        @id @default(uuid()) @db.Uuid
+  finding_id  String        @db.Uuid
+  assessor_id String?       @db.Uuid
+  old_status  FindingStatus
+  new_status  FindingStatus
+  notes       String
+  created_at  DateTime      @default(now())
+
+  finding  Finding @relation(fields: [finding_id], references: [id], onDelete: Cascade)
+  assessor User?   @relation(fields: [assessor_id], references: [id], onDelete: SetNull)
+
+  @@index([finding_id])
+  @@map("verification_logs")
+}
+
+// ─── Background jobs ─────────────────────────────────────────────────────────
+
+enum JobType {
+  RUN_CHECK
+  RUN_NMAP
+  RUN_ZAP
+  INTERPRET
+  REMEDIATE
+}
+
+enum JobStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+/// Mirrors the BullMQ job. The queue message carries only { jobId }.
+model Job {
+  id            String    @id @default(uuid()) @db.Uuid
+  type          JobType
+  /// The scan or finding this job works on.
+  ref_id        String    @db.Uuid
+  bull_job_id   String?
+  status        JobStatus @default(WAITING)
+  payload       Json?
+  attempts      Int       @default(0)
+  failed_reason String?
+  created_by    String?   @db.Uuid
+  created_at    DateTime  @default(now())
+  started_at    DateTime?
+  finished_at   DateTime?
+
+  creator User? @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([type, status])
+  @@index([ref_id])
+  @@map("jobs")
+}

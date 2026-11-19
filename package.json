@@ -21,7 +21,10 @@
     "type-check": "npm run type-check --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "build": "npm run build -w @tanaw/shared && npm run build -w @tanaw/api -w @tanaw/worker -w @tanaw/web"
+    "build": "npm run build -w @tanaw/shared && npm run build -w @tanaw/api -w @tanaw/worker -w @tanaw/web",
+    "db:migrate": "npm run db:migrate -w @tanaw/api",
+    "db:deploy": "npm run db:deploy -w @tanaw/api",
+    "seed": "npm run seed -w @tanaw/api"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

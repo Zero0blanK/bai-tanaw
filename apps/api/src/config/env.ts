@@ -13,13 +13,14 @@ const EnvSchema = z.object({
   WEB_URL: z.url().default('http://localhost:3000'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
 
-  DATABASE_URL: z.string().min(1).optional(),
+  DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
 
-  JWT_ACCESS_SECRET: z.string().min(16, 'must be at least 16 characters').optional(),
-  JWT_REFRESH_SECRET: z.string().min(16, 'must be at least 16 characters').optional(),
+  JWT_ACCESS_SECRET: z.string().min(16, 'must be at least 16 characters'),
+  JWT_REFRESH_SECRET: z.string().min(16, 'must be at least 16 characters'),
   JWT_ACCESS_TTL: duration.default('15m'),
   JWT_REFRESH_TTL: duration.default('7d'),
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
 
   ASSESSMENT_ALLOWED_HOSTS: z.string().default(''),
 
@@ -29,6 +30,19 @@ const EnvSchema = z.object({
 
   STORAGE_LOCAL_DIR: z.string().default('./storage'),
   MAX_IMPORT_SIZE_MB: z.coerce.number().positive().max(50).default(5),
+}).superRefine((e, ctx) => {
+  if (e.NODE_ENV !== 'production') return;
+  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+    if (e[key].length < 32 || e[key].startsWith('change-me')) {
+      ctx.addIssue({ code: 'custom', path: [key], message: 'production needs a random secret of 32+ characters' });
+    }
+  }
+  if (e.JWT_ACCESS_SECRET === e.JWT_REFRESH_SECRET) {
+    ctx.addIssue({ code: 'custom', path: ['JWT_REFRESH_SECRET'], message: 'must differ from JWT_ACCESS_SECRET' });
+  }
+  if (e.BCRYPT_ROUNDS < 10) {
+    ctx.addIssue({ code: 'custom', path: ['BCRYPT_ROUNDS'], message: 'production needs at least 10' });
+  }
 });
 
 export type Env = z.infer<typeof EnvSchema> & { ALLOWED_HOSTS: string[] };
