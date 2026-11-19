@@ -28,7 +28,18 @@ worker.on('ready', () => {
 worker.on('failed', (job, err) => {
   logger.error('Job failed', { bull_job_id: job?.id, error: err.message });
 });
-worker.on('error', (err) => logger.error('Worker error', { error: err.message }));
+// Redis reconnects forever; log each distinct error once instead of on every retry.
+let lastError = '';
+worker.on('error', (err) => {
+  const code = 'code' in err && typeof err.code === 'string' ? err.code : undefined;
+  const message = err.message || code || err.name;
+  if (message === lastError) return;
+  lastError = message;
+  logger.error('Worker error (is Redis running at REDIS_URL?)', { error: message });
+});
+worker.on('ready', () => {
+  lastError = '';
+});
 
 async function shutdown(signal: string): Promise<void> {
   logger.info('Shutting down', { signal });
