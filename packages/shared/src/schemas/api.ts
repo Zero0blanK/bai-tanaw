@@ -115,6 +115,15 @@ export const AddScopeRuleBody = z
     }
   });
 
+/** Dry-run scope check: "would this URL/host/port be allowed for this target?" */
+export const ScopeCheckBody = z
+  .object({
+    url: z.string().trim().max(500).optional(),
+    host: z.string().trim().min(1).max(253).optional(),
+    port: z.number().int().min(1).max(65535).optional(),
+  })
+  .refine((b) => b.url !== undefined || b.host !== undefined, 'give a url or a host');
+
 // ─── Scans ────────────────────────────────────────────────────────────────────
 
 export const StartScanBody = z.object({
@@ -185,6 +194,7 @@ export type UpdateUserInput = z.infer<typeof UpdateUserBody>;
 export type CreateTargetInput = z.infer<typeof CreateTargetBody>;
 export type UpdateTargetInput = z.infer<typeof UpdateTargetBody>;
 export type AddScopeRuleInput = z.infer<typeof AddScopeRuleBody>;
+export type ScopeCheckInput = z.infer<typeof ScopeCheckBody>;
 export type StartScanInput = z.infer<typeof StartScanBody>;
 export type ListFindingsInput = z.infer<typeof ListFindingsQuery>;
 export type CreateFindingInput = z.infer<typeof CreateFindingBody>;

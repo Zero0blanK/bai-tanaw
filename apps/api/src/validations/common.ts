@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 export const IdParams = z.object({ id: uuid('id') });
 
+export const ScopeRuleParams = z.object({ id: uuid('id'), ruleId: uuid('ruleId') });
+
 export const AuditLogQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(50),
