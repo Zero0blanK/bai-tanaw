@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createAiRouter, createFindingAiRouter, createScanAiRouter } from './ai.routes.js';
 import { createAuditLogRouter } from './auditLog.routes.js';
 import { createAuthRouter } from './auth.routes.js';
 import { healthRouter } from './health.routes.js';
@@ -14,7 +15,10 @@ export function createApiRouter(): Router {
   router.use('/users', createUserRouter());
   router.use('/targets', createTargetRouter());
   router.use('/targets', createTargetScanRouter());
+  router.use('/scans', createScanAiRouter());
   router.use('/scans', createScanRouter());
+  router.use('/findings', createFindingAiRouter());
+  router.use('/ai', createAiRouter());
   router.use('/jobs', createJobRouter());
   router.use('/audit-logs', createAuditLogRouter());
   return router;
