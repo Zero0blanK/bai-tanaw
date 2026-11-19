@@ -1,0 +1,183 @@
+// Scope enforcement: the safety core of Tanaw (AGENT.md §7.3).
+// Pure functions only, so the API and the worker run exactly the same checks.
+// The API/worker wrappers add audit logging and turn a failed check into a 403.
+
+import type { ScopeAssetType } from './enums/index.js';
+
+export interface ScopeRuleLike {
+  asset_type: ScopeAssetType;
+  value: string;
+  in_scope: boolean;
+}
+
+/** Minimal target shape the scope checks need. */
+export interface ScopedTarget {
+  base_url: string;
+  scope_rules: readonly ScopeRuleLike[];
+}
+
+export interface ScopeRequest {
+  url?: string | undefined;
+  host?: string | undefined;
+  port?: number | undefined;
+}
+
+export type ScopeDecision = { ok: true } | { ok: false; reason: string };
+
+/** Lowercase, trimmed, no IPv6 brackets, no trailing dot. */
+export function normalizeHost(host: string): string {
+  return host.trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+}
+
+/** Parses an http(s) URL. Returns null for anything else, including URLs with credentials. */
+export function parseHttpUrl(value: string): URL | null {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null;
+  return url;
+}
+
+export function defaultPort(url: URL): number {
+  if (url.port) return Number(url.port);
+  return url.protocol === 'https:' ? 443 : 80;
+}
+
+/** Splits ASSESSMENT_ALLOWED_HOSTS ("a.com, b.com") into normalized hosts. */
+export function parseAllowedHosts(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((h) => normalizeHost(h))
+    .filter(Boolean);
+}
+
+/** Hard allowlist check. Exact host match only (no wildcards, no subdomains). */
+export function isHostAllowed(host: string, allowedHosts: readonly string[]): boolean {
+  const normalized = normalizeHost(host);
+  return normalized.length > 0 && allowedHosts.includes(normalized);
+}
+
+const PORT_SPEC_RE = /^\s*\d{1,5}(\s*-\s*\d{1,5})?(\s*,\s*\d{1,5}(\s*-\s*\d{1,5})?)*\s*$/;
+
+/** True for "80", "80,443", "8000-8100", "80, 443, 3000-3001" with ports 1..65535 and start <= end. */
+export function isValidPortSpec(spec: string): boolean {
+  if (!PORT_SPEC_RE.test(spec)) return false;
+  return spec.split(',').every((part) => {
+    const [startRaw, endRaw] = part.split('-').map((p) => p.trim());
+    const start = Number(startRaw);
+    const end = endRaw === undefined ? start : Number(endRaw);
+    return start >= 1 && end <= 65535 && start <= end;
+  });
+}
+
+export function portInRange(port: number, spec: string): boolean {
+  if (!Number.isInteger(port)) return false;
+  return spec.split(',').some((part) => {
+    const [startRaw, endRaw] = part.trim().split('-');
+    const start = Number(startRaw?.trim());
+    const end = endRaw === undefined ? start : Number(endRaw.trim());
+    return Number.isInteger(start) && Number.isInteger(end) && port >= start && port <= end;
+  });
+}
+
+/** Same origin and the path starts with the prefix's path. */
+export function urlHasPrefix(url: string, prefix: string): boolean {
+  const a = parseHttpUrl(url);
+  const b = parseHttpUrl(prefix);
+  if (!a || !b) return false;
+  return a.origin === b.origin && a.pathname.startsWith(b.pathname);
+}
+
+function hostOfUrl(value: string): string | undefined {
+  const url = parseHttpUrl(value);
+  return url ? normalizeHost(url.hostname) : undefined;
+}
+
+/**
+ * Decides whether a host/URL/port is inside the authorized scope of a target:
+ *  1. the host must be on the hard allowlist (this also stops SSRF to anything else),
+ *  2. no out-of-scope rule (HOST, PORT_RANGE, URL prefix) may match,
+ *  3. the host must be the target's own host or an in-scope HOST/URL rule,
+ *  4. if in-scope PORT_RANGE rules exist, the port must be inside one of them,
+ *  5. if in-scope URL rules exist for that host and a URL is given, it must sit under one of them.
+ * In-scope rules can never widen past the allowlist, because rule 1 runs first.
+ */
+export function checkScope(
+  target: ScopedTarget,
+  request: ScopeRequest,
+  allowedHosts: readonly string[],
+): ScopeDecision {
+  let host = request.host !== undefined ? normalizeHost(request.host) : undefined;
+  let port = request.port;
+  if (request.url !== undefined) {
+    const url = parseHttpUrl(request.url);
+    if (!url) return { ok: false, reason: 'URL must be a valid http(s) URL without credentials' };
+    host = normalizeHost(url.hostname);
+    port = port ?? defaultPort(url);
+  }
+  if (!host) return { ok: false, reason: 'no host given' };
+  if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+    return { ok: false, reason: `port ${port} is not a valid port` };
+  }
+
+  // 1. Hard allowlist.
+  if (!isHostAllowed(host, allowedHosts)) return { ok: false, reason: `host ${host} is not on the allowlist` };
+
+  const inScope = target.scope_rules.filter((r) => r.in_scope);
+  const outOfScope = target.scope_rules.filter((r) => !r.in_scope);
+
+  // 2. Out-of-scope rules always win.
+  for (const rule of outOfScope) {
+    if (rule.asset_type === 'HOST' && normalizeHost(rule.value) === host) {
+      return { ok: false, reason: `host ${host} is marked out of scope` };
+    }
+    if (rule.asset_type === 'PORT_RANGE' && port !== undefined && portInRange(port, rule.value)) {
+      return { ok: false, reason: `port ${port} is marked out of scope` };
+    }
+    if (rule.asset_type === 'URL' && request.url !== undefined && urlHasPrefix(request.url, rule.value)) {
+      return { ok: false, reason: `URL is under out-of-scope prefix ${rule.value}` };
+    }
+  }
+
+  // 3. Host must belong to the target.
+  const targetHost = hostOfUrl(target.base_url);
+  const hostRules = inScope.filter((r) => r.asset_type === 'HOST').map((r) => normalizeHost(r.value));
+  const urlRules = inScope.filter((r) => r.asset_type === 'URL');
+  const urlRuleHosts = urlRules.map((r) => hostOfUrl(r.value)).filter((h): h is string => Boolean(h));
+  if (host !== targetHost && !hostRules.includes(host) && !urlRuleHosts.includes(host)) {
+    return { ok: false, reason: `host ${host} is not in scope for this target` };
+  }
+
+  // 4. Port ranges.
+  const portRules = inScope.filter((r) => r.asset_type === 'PORT_RANGE');
+  if (port !== undefined && portRules.length > 0 && !portRules.some((r) => portInRange(port, r.value))) {
+    return { ok: false, reason: `port ${port} is not in an in-scope port range` };
+  }
+
+  // 5. URL prefixes for this host.
+  if (request.url !== undefined) {
+    const requestUrl = request.url;
+    const sameHostUrlRules = urlRules.filter((r) => hostOfUrl(r.value) === host);
+    if (sameHostUrlRules.length > 0 && !sameHostUrlRules.some((r) => urlHasPrefix(requestUrl, r.value))) {
+      return { ok: false, reason: 'URL is not under an in-scope URL rule' };
+    }
+  }
+
+  return { ok: true };
+}
+
+/** Nmap input guards (AGENT.md §7.4). Run before building the argument array. */
+export const NMAP_HOST_RE = /^[a-z0-9.-]+$/;
+export const NMAP_PORTS_RE = /^\d+(-\d+)?(,\d+(-\d+)?)*$/;
+
+export function isSafeNmapHost(host: string): boolean {
+  const h = normalizeHost(host);
+  return h.length > 0 && h.length <= 253 && NMAP_HOST_RE.test(h) && !h.startsWith('-');
+}
+
+export function isSafeNmapPorts(ports: string): boolean {
+  return NMAP_PORTS_RE.test(ports) && isValidPortSpec(ports);
+}
