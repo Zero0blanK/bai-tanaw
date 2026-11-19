@@ -35,6 +35,35 @@ export const scopeService = {
     throw new AuthorizationError(`${SCOPE_MESSAGES.OUT_OF_SCOPE}: ${decision.reason}`);
   },
 
+  /** Checks several requests (e.g. every host and port in an imported report). The first block throws. */
+  async assertAllInScope(
+    target: ScopedTarget & { id: string },
+    requests: ScopeRequest[],
+    actor: Actor,
+    context: ScopeContext,
+  ): Promise<void> {
+    const seen = new Set<string>();
+    for (const request of requests) {
+      const key = JSON.stringify([request.url, request.host, request.port]);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      await this.assertInScope(target, request, actor, context);
+    }
+  },
+
+  /** Refuses tool runs outside the target's authorized test window (when one is set). */
+  async assertWithinTestWindow(
+    target: { id: string; test_window_start: Date | null; test_window_end: Date | null },
+    actor: Actor,
+    now = new Date(),
+  ): Promise<void> {
+    const { test_window_start: start, test_window_end: end } = target;
+    if ((!start || now >= start) && (!end || now <= end)) return;
+    const reason = `outside the authorized test window (${start?.toISOString() ?? 'open'} to ${end?.toISOString() ?? 'open'})`;
+    await auditService.log('scope_blocked', actor, { target_id: target.id, metadata: { context: 'scan', reason } });
+    throw new AuthorizationError(`${SCOPE_MESSAGES.OUT_OF_SCOPE}: ${reason}`);
+  },
+
   /** Allowlist-only check, for registering targets and in-scope rules (there is no target scope yet to check). */
   async assertHostAllowed(
     host: string,

@@ -33,7 +33,13 @@ export const targetRepository = {
   findForScope(id: string) {
     return prisma.assessmentTarget.findUnique({
       where: { id },
-      select: { id: true, base_url: true, scope_rules: { select: { asset_type: true, value: true, in_scope: true } } },
+      select: {
+        id: true,
+        base_url: true,
+        test_window_start: true,
+        test_window_end: true,
+        scope_rules: { select: { asset_type: true, value: true, in_scope: true } },
+      },
     });
   },
 

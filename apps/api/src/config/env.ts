@@ -28,6 +28,8 @@ const EnvSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   AI_DAILY_LIMIT: z.coerce.number().int().min(0).default(20),
 
+  NMAP_DEFAULT_PORTS: z.string().default('80,443'),
+
   STORAGE_LOCAL_DIR: z.string().default('./storage'),
   MAX_IMPORT_SIZE_MB: z.coerce.number().positive().max(50).default(5),
 }).superRefine((e, ctx) => {
