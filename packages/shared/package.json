@@ -11,6 +11,11 @@
       "development": "./src/index.ts",
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./node": {
+      "development": "./src/node/index.ts",
+      "types": "./src/node/index.ts",
+      "default": "./dist/node/index.js"
     }
   },
   "scripts": {
@@ -21,6 +26,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "fast-xml-parser": "^5.12.1",
     "zod": "^4.1.12"
   }
 }

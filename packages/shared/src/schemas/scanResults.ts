@@ -4,7 +4,8 @@
 import { z } from 'zod';
 
 const str = z.string();
-const optStr = z.string().optional();
+/** Missing values are stored as null (same as the prototype). */
+const optStr = z.string().nullable();
 
 export const HeaderResponseSchema = z.object({
   check: z.literal('response'),
@@ -52,16 +53,18 @@ export const CorsDataSchema = z.object({
 
 export const RedirectDataSchema = z.object({
   from: str,
-  status: z.number().int(),
+  /** null when the plain-HTTP request failed (see error). */
+  status: z.number().int().nullable(),
   location: optStr,
-  redirects_to_https: z.boolean(),
+  redirects_to_https: z.boolean().nullable(),
+  error: z.string().optional(),
 });
 
 export const DnsRecordDataSchema = z.object({
   host: str,
   record_type: str,
   name: str,
-  ttl: z.number().int().optional(),
+  ttl: z.number().int().nullable(),
   value: str,
 });
 
@@ -93,7 +96,7 @@ export const ServiceDataSchema = z.object({
 });
 
 export const AlertInstanceSchema = z.object({
-  uri: str,
+  uri: optStr,
   method: optStr,
   param: optStr,
   evidence: optStr,
@@ -101,7 +104,7 @@ export const AlertInstanceSchema = z.object({
 
 export const AlertDataSchema = z.object({
   host: str,
-  plugin_id: str,
+  plugin_id: optStr,
   name: str,
   risk: str,
   confidence: optStr,
