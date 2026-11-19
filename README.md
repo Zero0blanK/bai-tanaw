@@ -5,7 +5,7 @@ built for the CS24 final project. It assesses an **authorized** web application 
 tool results, uses AI to explain results and suggest fixes, and keeps a human assessor in charge of what counts as a
 confirmed vulnerability.
 
-> Status: scaffold only. The full build plan, rules and architecture are in [AGENT.md](AGENT.md).
+> Status: Phase 1 (foundation) done. The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
 
 ## Quick start (infrastructure)
 
@@ -14,7 +14,17 @@ cp .env.example .env
 docker compose up -d postgres redis zap
 ```
 
-The apps (`apps/api`, `apps/worker`, `apps/web`) are built by following [AGENT.md](AGENT.md).
+## Run the apps in development (Node 22+)
+
+```bash
+npm install
+npm run dev:api      # http://localhost:4000/api/health
+npm run dev:worker   # needs Redis from the step above
+npm run dev:web      # http://localhost:3000
+```
+
+Checks before every commit: `npm run type-check && npm run lint && npm test`.
+Everything in Docker: `docker compose --profile app up -d --build`.
 
 ## Layout
 
