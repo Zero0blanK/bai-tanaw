@@ -5,7 +5,7 @@ built for the CS24 final project. It assesses an **authorized** web application 
 tool results, uses AI to explain results and suggest fixes, and keeps a human assessor in charge of what counts as a
 confirmed vulnerability.
 
-> Status: Phase 1 (foundation) done. The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
+> Status: Phases 1 (foundation) and 2 (data and auth) done. The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
 
 ## Quick start (infrastructure)
 
@@ -18,6 +18,8 @@ docker compose up -d postgres redis zap
 
 ```bash
 npm install
+npm run db:deploy    # apply migrations to DATABASE_URL
+npm run seed         # first admin from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 npm run dev:api      # http://localhost:4000/api/health
 npm run dev:worker   # needs Redis from the step above
 npm run dev:web      # http://localhost:3000
