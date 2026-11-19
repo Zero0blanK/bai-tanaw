@@ -7,7 +7,7 @@ const bool = z.enum(['true', 'false']).default('false').transform((v) => v === '
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().min(1).optional(),
+  DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
 
@@ -19,6 +19,8 @@ const EnvSchema = z.object({
   ZAP_API_URL: z.url().default('http://localhost:8090'),
   ZAP_API_KEY: z.string().optional(),
   ZAP_ACTIVE_SCAN_ENABLED: bool,
+  /** Upper bound for one ZAP spider run, in minutes. */
+  ZAP_SPIDER_MAX_MINUTES: z.coerce.number().int().min(1).max(60).default(5),
 
   AI_PROVIDER: z.enum(['openai', 'ollama']).default('openai'),
   OPENAI_API_KEY: z.string().optional(),

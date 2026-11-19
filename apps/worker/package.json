@@ -10,12 +10,15 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "prisma generate --schema ../api/prisma/schema.prisma"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "@tanaw/shared": "*",
     "bullmq": "^5.61.0",
     "ioredis": "^5.8.1",
+    "prisma": "^6.19.3",
     "zod": "^4.1.12"
   }
 }

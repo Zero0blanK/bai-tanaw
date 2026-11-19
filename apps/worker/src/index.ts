@@ -1,20 +1,21 @@
 // Worker entry point: consumes the assessment queue. Each job carries only { jobId };
-// the job row in Postgres holds the type and payload (Phase 4 wires the processors).
+// the job row in Postgres holds the type, the scan/finding it works on, and its status.
 
 import { ASSESSMENT_QUEUE, type QueueJobData } from '@tanaw/shared';
 import { Worker } from 'bullmq';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
+import { prisma } from './config/prisma.js';
 import { createRedisConnection } from './config/redis.js';
+import { processJob } from './jobs/processJob.js';
 
 const connection = createRedisConnection();
 
 const worker = new Worker<QueueJobData>(
   ASSESSMENT_QUEUE,
   async (job) => {
-    logger.info('Job received', { name: job.name, bull_job_id: job.id, job_id: job.data.jobId });
-    // Processors per job type (RUN_CHECK, RUN_NMAP, RUN_ZAP, INTERPRET, REMEDIATE) land in Phase 4/5.
-    return { handled: false };
+    logger.info('Job received', { name: job.name, job_id: job.data.jobId, attempt: job.attemptsMade + 1 });
+    return processJob(job.data.jobId, { attempt: job.attemptsMade + 1, maxAttempts: job.opts.attempts ?? 1 });
   },
   { connection, concurrency: env.WORKER_CONCURRENCY },
 );
@@ -45,6 +46,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Shutting down', { signal });
   await worker.close();
   await connection.quit();
+  await prisma.$disconnect();
   process.exit(0);
 }
 
