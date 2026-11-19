@@ -73,6 +73,20 @@ export function isValidPortSpec(spec: string): boolean {
   });
 }
 
+/** "80,443,8000-8002" → [80, 443, 8000, 8001, 8002]. Returns null if the spec is invalid or lists more than `max` ports. */
+export function expandPortSpec(spec: string, max = 1024): number[] | null {
+  if (!isValidPortSpec(spec)) return null;
+  const ports = new Set<number>();
+  for (const part of spec.split(',')) {
+    const [startRaw, endRaw] = part.split('-').map((p) => Number(p.trim()));
+    const start = startRaw ?? 0;
+    const end = endRaw ?? start;
+    if (end - start + 1 + ports.size > max) return null;
+    for (let p = start; p <= end; p += 1) ports.add(p);
+  }
+  return [...ports].sort((a, b) => a - b);
+}
+
 export function portInRange(port: number, spec: string): boolean {
   if (!Number.isInteger(port)) return false;
   return spec.split(',').some((part) => {
@@ -167,6 +181,40 @@ export function checkScope(
   }
 
   return { ok: true };
+}
+
+/** What the API stores in scans.params and the worker reads back. */
+export interface ScanParams {
+  url?: string;
+  host?: string;
+  ports?: string;
+  filename?: string;
+}
+
+export const MAX_NMAP_PORTS = 1024;
+
+/**
+ * Every host/URL/port a tool run will touch, so the API (when queueing) and the worker (when running)
+ * check exactly the same list. Returns null when the params don't fit the tool.
+ */
+export function scopeRequestsForScan(tool: string, params: ScanParams): ScopeRequest[] | null {
+  switch (tool) {
+    case 'HTTP_CHECK':
+    case 'OPENAPI':
+    case 'ZAP':
+      return params.url ? [{ url: params.url }] : null;
+    case 'DNS':
+      return params.host ? [{ host: params.host }] : null;
+    case 'NMAP': {
+      if (!params.host || !params.ports) return null;
+      const ports = expandPortSpec(params.ports, MAX_NMAP_PORTS);
+      if (!ports) return null;
+      const host = params.host;
+      return ports.map((port) => ({ host, port }));
+    }
+    default:
+      return null;
+  }
 }
 
 /** Nmap input guards (AGENT.md §7.4). Run before building the argument array. */

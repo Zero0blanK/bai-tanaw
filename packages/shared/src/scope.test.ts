@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkScope,
+  expandPortSpec,
   isHostAllowed,
   isSafeNmapHost,
   isSafeNmapPorts,
@@ -52,6 +53,13 @@ describe('helpers', () => {
     expect(isValidPortSpec('70000')).toBe(false);
     expect(isValidPortSpec('100-50')).toBe(false);
     expect(isValidPortSpec('80;rm')).toBe(false);
+  });
+
+  it('expands port specs with a cap', () => {
+    expect(expandPortSpec('443, 80,8000-8002')).toEqual([80, 443, 8000, 8001, 8002]);
+    expect(expandPortSpec('1-65535')).toBeNull();
+    expect(expandPortSpec('1-1024')).toHaveLength(1024);
+    expect(expandPortSpec('abc')).toBeNull();
   });
 
   it('checks ports against ranges', () => {
