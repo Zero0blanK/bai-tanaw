@@ -1,4 +1,6 @@
 import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 // Load the repo-root .env (for TEST_DATABASE_URL), but never let tests touch the dev database.
@@ -23,6 +25,7 @@ export default defineConfig({
       JWT_REFRESH_SECRET: 'test-refresh-secret-0123456789abcdef',
       BCRYPT_ROUNDS: '4',
       CORS_ORIGIN: 'http://localhost:3000',
+      STORAGE_LOCAL_DIR: join(tmpdir(), 'tanaw-api-test-storage'),
       ASSESSMENT_ALLOWED_HOSTS: 'bayawjobs.riomar.dev,bayawjobs-api.riomar.dev,localhost,127.0.0.1',
     },
   },
