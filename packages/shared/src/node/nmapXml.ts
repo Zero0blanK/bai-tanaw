@@ -36,13 +36,21 @@ const parser = new XMLParser({
 });
 
 export function parseNmapXml(xml: string): ParsedReport {
-  let doc: { nmaprun?: { host?: NmapHost | NmapHost[] } };
+  let doc: {
+    nmaprun?: { host?: NmapHost | NmapHost[]; runstats?: { finished?: { exit?: string; errormsg?: string } } };
+  };
   try {
     doc = parser.parse(xml) as typeof doc;
   } catch {
     throw new Error('Not valid XML');
   }
   if (!doc.nmaprun || typeof doc.nmaprun !== 'object') throw new Error('Not an Nmap XML report (missing <nmaprun>)');
+
+  const finished = doc.nmaprun.runstats?.finished;
+  if (finished?.exit === 'error') {
+    const firstLine = (finished.errormsg ?? 'unknown').split(/\r?\n/)[0] ?? 'unknown';
+    throw new Error(`Nmap reported an error: ${firstLine.slice(0, 200)}`);
+  }
 
   const report: ParsedReport = { hosts: [], results: [] };
 

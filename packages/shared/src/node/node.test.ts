@@ -27,6 +27,9 @@ describe('parseNmapXml', () => {
     expect(() => parseNmapXml('<html></html>')).toThrow(/nmaprun/);
     expect(() => parseNmapXml('{"site":[]}')).toThrow();
     expect(() => parseNmapXml('<nmaprun scanner="nmap"></nmaprun>')).toThrow(/no hosts/);
+    expect(() =>
+      parseNmapXml('<nmaprun><runstats><finished exit="error" errormsg="NSE: failed to initialize"/></runstats></nmaprun>'),
+    ).toThrow(/Nmap reported an error: NSE: failed/);
   });
 
   it('does not expand entities (no XXE / billion laughs)', () => {
