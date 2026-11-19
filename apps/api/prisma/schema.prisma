@@ -364,6 +364,8 @@ model Job {
   payload       Json?
   attempts      Int       @default(0)
   failed_reason String?
+  /// Small summary for the client when the job is done, e.g. { analysis_id, findings_created }.
+  result        Json?
   created_by    String?   @db.Uuid
   created_at    DateTime  @default(now())
   started_at    DateTime?
@@ -373,5 +375,6 @@ model Job {
 
   @@index([type, status])
   @@index([ref_id])
+  @@index([created_by, created_at])
   @@map("jobs")
 }
