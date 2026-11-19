@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createAiRouter, createFindingAiRouter, createScanAiRouter } from './ai.routes.js';
 import { createAuditLogRouter } from './auditLog.routes.js';
 import { createAuthRouter } from './auth.routes.js';
+import { createFindingRouter, createInsightsRouter } from './finding.routes.js';
 import { healthRouter } from './health.routes.js';
 import { createJobRouter, createScanRouter, createTargetScanRouter } from './scan.routes.js';
 import { createTargetRouter } from './target.routes.js';
@@ -18,8 +19,10 @@ export function createApiRouter(): Router {
   router.use('/scans', createScanAiRouter());
   router.use('/scans', createScanRouter());
   router.use('/findings', createFindingAiRouter());
+  router.use('/findings', createFindingRouter());
   router.use('/ai', createAiRouter());
   router.use('/jobs', createJobRouter());
   router.use('/audit-logs', createAuditLogRouter());
+  router.use('/', createInsightsRouter());
   return router;
 }

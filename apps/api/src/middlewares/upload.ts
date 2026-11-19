@@ -3,8 +3,12 @@ import multer from 'multer';
 import { env } from '../config/env.js';
 import { AppError, BadRequestError } from '../utils/errors.js';
 
-/** Single in-memory file upload in field "file", capped at MAX_IMPORT_SIZE_MB. */
-export function singleFile(field = 'file'): RequestHandler {
+/**
+ * Single in-memory file upload in field "file", capped at MAX_IMPORT_SIZE_MB. Other multipart fields land in req.body.
+ * With required: false the request may be JSON or multipart without a file.
+ */
+export function singleFile(field = 'file', options: { required?: boolean } = {}): RequestHandler {
+  const required = options.required ?? true;
   const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: env.MAX_IMPORT_SIZE_MB * 1024 * 1024, files: 1, fields: 5 },
@@ -24,8 +28,8 @@ export function singleFile(field = 'file'): RequestHandler {
         next(error);
         return;
       }
-      if (!req.file) {
-        next(new BadRequestError(`Attach the report as multipart field "${field}"`));
+      if (required && !req.file) {
+        next(new BadRequestError(`Attach the file as multipart field "${field}"`));
         return;
       }
       next();
