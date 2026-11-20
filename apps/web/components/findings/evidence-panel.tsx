@@ -30,25 +30,25 @@ export function EvidenceImage({ evidenceId, alt }: { evidenceId: string; alt: st
     };
   }, [evidenceId]);
   if (failed) return <p className="text-xs text-red-600">Could not load the image.</p>;
-  if (!url) return <div className="h-24 w-40 animate-pulse rounded bg-slate-100" />;
+  if (!url) return <div className="h-24 w-40 animate-pulse rounded bg-ink-100" />;
   // A plain <img>: the source is an authenticated blob URL, not a static asset next/image could optimize.
-  return <img src={url} alt={alt} className="max-h-96 rounded border border-slate-200" />;
+  return <img src={url} alt={alt} className="max-h-96 rounded border border-ink-200" />;
 }
 
 export function EvidenceItem({ evidence }: { evidence: Evidence }) {
   const isImage = evidence.type === 'SCREENSHOT' && evidence.file_path;
   return (
     <li className="space-y-2 py-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-500">
         <Badge tone="brand">{humanize(evidence.type)}</Badge>
         {evidence.creator?.name ?? 'system'} · {formatDateTime(evidence.created_at)}
       </div>
       {evidence.scan_result && (
-        <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+        <div className="rounded border border-ink-200 bg-ink-50 px-3 py-2 text-sm">
           <ResultSummary type={evidence.scan_result.type} data={evidence.scan_result.data} />
         </div>
       )}
-      {evidence.content && !evidence.scan_result && <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded bg-slate-900 px-3 py-2 text-xs text-slate-100">{evidence.content}</pre>}
+      {evidence.content && !evidence.scan_result && <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded bg-ink-900 px-3 py-2 text-xs text-ink-100">{evidence.content}</pre>}
       {isImage && <EvidenceImage evidenceId={evidence.id} alt={`Screenshot evidence ${evidence.id}`} />}
       {evidence.file_path && !isImage && (
         <Button size="sm" variant="secondary" onClick={() => void downloadFile(`/evidence/${evidence.id}/file`, `evidence-${evidence.id}.txt`)}>
@@ -94,14 +94,14 @@ export function EvidencePanel({ findingId, evidence, canEdit, onAdded }: { findi
       {evidence.length === 0 ? (
         <Empty title="No evidence yet">A finding can't be confirmed without evidence.</Empty>
       ) : (
-        <ul className="divide-y divide-slate-100 px-5">
+        <ul className="divide-y divide-ink-100 px-5">
           {evidence.map((e) => (
             <EvidenceItem key={e.id} evidence={e} />
           ))}
         </ul>
       )}
       {canEdit && (
-        <CardBody className="border-t border-slate-100">
+        <CardBody className="border-t border-ink-100">
           <form onSubmit={add} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Type" htmlFor="ev-type">
               <Select id="ev-type" value={type} onChange={(e) => setType(e.target.value as EvidenceType)}>

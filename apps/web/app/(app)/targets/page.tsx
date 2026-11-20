@@ -129,27 +129,26 @@ export default function TargetsPage() {
           <Table>
             <thead>
               <tr>
-                <Th>Name</Th>
-                <Th>Base URL</Th>
-                <Th>Scope rules</Th>
-                <Th>Scans</Th>
-                <Th>Findings</Th>
-                <Th>Created</Th>
+                <Th>Target</Th>
+                <Th className="text-right">Scope rules</Th>
+                <Th className="text-right">Scans</Th>
+                <Th className="text-right">Findings</Th>
+                <Th>Registered</Th>
               </tr>
             </thead>
             <tbody>
               {data.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50">
+                <tr key={t.id} className="transition-colors hover:bg-ink-50/70">
                   <Td>
-                    <Link href={`/targets/${t.id}`} className="font-medium text-brand-700 hover:underline">
+                    <Link href={`/targets/${t.id}`} className="font-semibold text-ink-900 hover:text-brand-700">
                       {t.name}
                     </Link>
+                    <span className="mt-0.5 block text-xs text-ink-500">{t.base_url}</span>
                   </Td>
-                  <Td className="font-mono text-xs">{t.base_url}</Td>
-                  <Td>{t._count?.scope_rules ?? 0}</Td>
-                  <Td>{t._count?.scans ?? 0}</Td>
-                  <Td>{t._count?.findings ?? 0}</Td>
-                  <Td>{formatDate(t.created_at)}</Td>
+                  <Td className="text-right tabular-nums">{t._count?.scope_rules ?? 0}</Td>
+                  <Td className="text-right tabular-nums">{t._count?.scans ?? 0}</Td>
+                  <Td className="text-right tabular-nums">{t._count?.findings ?? 0}</Td>
+                  <Td className="text-ink-500">{formatDate(t.created_at)}</Td>
                 </tr>
               ))}
             </tbody>

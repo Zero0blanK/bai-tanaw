@@ -156,10 +156,10 @@ export default function UsersPage() {
                 return (
                   <tr key={u.id}>
                     <Td>
-                      <p className="font-medium text-slate-800">
-                        {u.name} {self && <span className="text-xs text-slate-500">(you)</span>}
+                      <p className="font-medium text-ink-800">
+                        {u.name} {self && <span className="text-xs text-ink-500">(you)</span>}
                       </p>
-                      <p className="text-xs text-slate-500">{u.email}</p>
+                      <p className="text-xs text-ink-500">{u.email}</p>
                     </Td>
                     <Td>
                       <Select aria-label={`Role for ${u.email}`} value={u.role} disabled={self} onChange={(e) => void update(u, { role: e.target.value as Role })} className="w-36">

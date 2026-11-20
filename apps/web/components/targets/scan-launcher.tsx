@@ -56,7 +56,7 @@ export function ScanLauncher({ targetId, baseUrl, onFinished }: { targetId: stri
 
   return (
     <Card>
-      <CardHeader title="Run a tool" description="Every host, URL and port is checked against the scope before anything runs, and again by the worker." />
+      <CardHeader title="Run one tool" description="Every host, URL and port is checked against the scope before anything runs, and again by the worker. Results become findings automatically." />
       <CardBody className="space-y-3">
         <form onSubmit={start} className="grid grid-cols-1 gap-3 sm:grid-cols-2" noValidate>
           <Field label="Tool" htmlFor="tool" hint={info.help} className="sm:col-span-2">
@@ -117,8 +117,8 @@ export function ReportImport({ targetId, onImported }: { targetId: string; onImp
     setError(null);
     setNotice(null);
     try {
-      const { data } = await api<{ results: number }>(`/targets/${targetId}/imports/${tool}`, { method: 'POST', form });
-      setNotice(`Imported ${data.results} results.`);
+      const { data } = await api<{ results: number; findings_created: number; ai: { queued: boolean } }>(`/targets/${targetId}/imports/${tool}`, { method: 'POST', form });
+      setNotice(`Imported ${data.results} results and created ${data.findings_created} new findings.${data.ai.queued ? ' The AI is reading the report now.' : ''}`);
       if (fileRef.current) fileRef.current.value = '';
       onImported();
     } catch (e) {

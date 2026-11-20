@@ -24,7 +24,7 @@ function Draft({ analysis, onAccept, accepting }: { analysis: AiAnalysis; onAcce
             AI draft
           </Badge>
           <Badge tone={d.confidence === 'HIGH' ? 'green' : d.confidence === 'MEDIUM' ? 'amber' : 'red'}>{d.confidence.toLowerCase()} confidence</Badge>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-ink-500">
             {analysis.model} · {formatDateTime(analysis.created_at)}
           </span>
         </div>
@@ -34,15 +34,15 @@ function Draft({ analysis, onAccept, accepting }: { analysis: AiAnalysis; onAcce
           </Button>
         )}
       </div>
-      <p className="text-slate-800">{d.summary}</p>
-      <ol className="list-inside list-decimal space-y-1 text-slate-700">
+      <p className="text-ink-800">{d.summary}</p>
+      <ol className="list-inside list-decimal space-y-1 text-ink-700">
         {d.steps.map((s, i) => (
           <li key={i}>{s}</li>
         ))}
       </ol>
-      {d.code_example && <pre className="overflow-auto rounded bg-slate-900 px-3 py-2 text-xs text-slate-100">{d.code_example}</pre>}
+      {d.code_example && <pre className="overflow-auto rounded bg-ink-900 px-3 py-2 text-xs text-ink-100">{d.code_example}</pre>}
       {d.references.length > 0 && (
-        <ul className="list-inside list-disc text-xs text-slate-600">
+        <ul className="list-inside list-disc text-xs text-ink-600">
           {d.references.map((r) => (
             <li key={r} className="break-all">
               {r}
@@ -127,9 +127,9 @@ export function RemediationPanel({ finding, canEdit, onSaved }: { finding: Findi
             </div>
           </div>
         ) : finding.remediation ? (
-          <pre className="whitespace-pre-wrap font-sans text-sm text-slate-800">{finding.remediation}</pre>
+          <pre className="whitespace-pre-wrap font-sans text-sm text-ink-800">{finding.remediation}</pre>
         ) : (
-          <p className="text-sm text-slate-500">No remediation yet.</p>
+          <p className="text-sm text-ink-500">No remediation yet.</p>
         )}
         {drafts.data?.map((a) => (
           <Draft key={a.id} analysis={a} accepting={busy === a.id} {...(canEdit ? { onAccept: () => void save({ analysis_id: a.id }) } : {})} />

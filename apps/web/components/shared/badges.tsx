@@ -18,7 +18,7 @@ export const CATEGORY_LABEL: Record<FindingCategory, string> = {
 };
 
 export function SeverityBadge({ severity, prefix }: { severity: Severity | null | undefined; prefix?: string }) {
-  if (!severity) return <span className="text-xs text-slate-400">-</span>;
+  if (!severity) return <span className="text-xs text-ink-400">-</span>;
   return (
     <Badge tone={SEVERITY_TONE[severity]}>
       {prefix}
@@ -45,7 +45,14 @@ export function AiUnverifiedBadge() {
   );
 }
 
+/** Where a finding came from, in words an assessor reads at a glance. */
+export const SOURCE_LABEL: Record<FindingSource, string> = { TOOL: 'Tool rule', AI: 'AI', MANUAL: 'Manual test' };
+
 export function SourceBadge({ source }: { source: FindingSource }) {
   const tone: Record<FindingSource, Tone> = { AI: 'purple', TOOL: 'blue', MANUAL: 'brand' };
-  return <Badge tone={tone[source]}>{humanize(source)}</Badge>;
+  return (
+    <Badge tone={tone[source]} title={source === 'TOOL' ? 'Raised automatically by a fixed rule from the scan results.' : undefined}>
+      {SOURCE_LABEL[source]}
+    </Badge>
+  );
 }

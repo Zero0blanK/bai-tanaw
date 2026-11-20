@@ -49,12 +49,12 @@ export function HBarChart({ title, description, data, emptyText = 'Nothing to sh
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <details className="px-2 pb-2 text-xs text-slate-600">
+          <details className="px-2 pb-2 text-xs text-ink-600">
             <summary className="cursor-pointer select-none">Show as table</summary>
             <table className="mt-2 w-full">
               <tbody>
                 {data.map((d) => (
-                  <tr key={d.label} className="border-t border-slate-100">
+                  <tr key={d.label} className="border-t border-ink-100">
                     <td className="py-1">{d.label}</td>
                     <td className="py-1 text-right font-medium">{d.value}</td>
                   </tr>

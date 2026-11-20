@@ -1,13 +1,39 @@
 @import 'tailwindcss';
 
+/*
+ * Tanaw design tokens.
+ *   ink    #16233B  sidebar, headings: the lookout at night
+ *   paper  #F3F5F8  app background; surfaces are white
+ *   brand  #0F766E  lookout teal: primary actions, the active route, progress
+ *   watch  amber    reserved for "awaiting your verification"
+ * Severity keeps its own red ramp (see components/shared/badges.tsx).
+ */
 @theme {
-  --color-brand-50: #eef6f5;
-  --color-brand-100: #d5ebe8;
-  --color-brand-500: #1f7a70;
-  --color-brand-600: #186359;
-  --color-brand-700: #124b44;
-  --color-brand-900: #0a2a26;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-brand-50: #effaf8;
+  --color-brand-100: #d3f0ea;
+  --color-brand-200: #a8e0d5;
+  --color-brand-300: #6cc7b8;
+  --color-brand-500: #14897f;
+  --color-brand-600: #0f766e;
+  --color-brand-700: #0b5e58;
+  --color-brand-900: #073b37;
+
+  --color-ink-50: #f6f7fa;
+  --color-ink-100: #eceff4;
+  --color-ink-200: #d9dfe8;
+  --color-ink-300: #a7b2c5;
+  --color-ink-400: #7d8aa3;
+  --color-ink-500: #56647e;
+  --color-ink-600: #3b4a66;
+  --color-ink-700: #263552;
+  --color-ink-800: #1c2a45;
+  --color-ink-900: #16233b;
+  --color-ink-950: #0f1a2e;
+
+  --color-paper: #f3f5f8;
+
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-bricolage), var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -16,7 +42,36 @@ body {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-paper text-ink-900 antialiased;
+  font-feature-settings: 'ss01', 'tnum';
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The one orchestrated motion: the assessment track fills as each step completes. */
+@keyframes track-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(15 118 110 / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(15 118 110 / 0);
+  }
+}
+.track-active {
+  animation: track-pulse 1.6s ease-in-out infinite;
 }
 
 @media print {

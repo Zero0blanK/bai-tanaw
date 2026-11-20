@@ -12,7 +12,7 @@ const ALERT = {
 export function Alert({ kind = 'info', children, className }: { kind?: keyof typeof ALERT; children: ReactNode; className?: string }) {
   const { cls, Icon } = ALERT[kind];
   return (
-    <div role={kind === 'error' ? 'alert' : 'status'} className={cn('flex gap-2 rounded-md border px-3 py-2 text-sm', cls, className)}>
+    <div role={kind === 'error' ? 'alert' : 'status'} className={cn('flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed', cls, className)}>
       <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <div className="min-w-0">{children}</div>
     </div>
@@ -21,7 +21,7 @@ export function Alert({ kind = 'info', children, className }: { kind?: keyof typ
 
 export function Spinner({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 py-6 text-sm text-slate-500">
+    <div className="flex items-center gap-2 py-6 text-sm text-ink-500">
       <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
       {label}
     </div>
@@ -30,9 +30,9 @@ export function Spinner({ label = 'Loading…' }: { label?: string }) {
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="px-5 py-10 text-center">
-      <p className="text-sm font-medium text-slate-700">{title}</p>
-      {children && <div className="mt-1 text-sm text-slate-500">{children}</div>}
+    <div className="px-5 py-12 text-center">
+      <p className="font-display text-base font-semibold text-ink-800">{title}</p>
+      {children && <div className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-ink-500">{children}</div>}
     </div>
   );
 }

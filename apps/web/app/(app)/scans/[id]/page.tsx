@@ -49,19 +49,19 @@ function InterpretPanel({ scan, onDone }: { scan: ScanDetail; onDone: () => void
     <Card>
       <CardHeader
         title="AI interpretation"
-        description="The AI reads these results (secrets redacted) and suggests findings. Every suggestion stays PENDING until an assessor verifies it."
+        description="The AI reads every finished scan on its own (secrets removed first) and adds findings the tool rules missed. Each one stays To verify until an assessor decides."
         actions={
           canRun && (
-            <Button onClick={() => void interpret()} loading={busy} disabled={Boolean(jobId) && !result} variant="primary">
+            <Button onClick={() => void interpret()} loading={busy} disabled={Boolean(jobId) && !result} variant="secondary" size="sm">
               <Sparkles className="h-4 w-4" aria-hidden />
-              Interpret with AI
+              Re-run AI
             </Button>
           )
         }
       />
       <CardBody className="space-y-3">
         {usage.data && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-500">
             AI calls today: {usage.data.used} of {usage.data.limit} used.
           </p>
         )}
@@ -97,8 +97,11 @@ function InterpretPanel({ scan, onDone }: { scan: ScanDetail; onDone: () => void
             .
           </Alert>
         )}
+        {analyses.data?.length === 0 && !jobId && usage.data?.configured && (
+          <p className="text-sm text-ink-500">No AI reading yet. It starts automatically once the scan finishes.</p>
+        )}
         {analyses.data && analyses.data.length > 0 && (
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="divide-y divide-ink-100 text-sm">
             {analyses.data.map((a) => {
               const count = Array.isArray(a.output.findings) ? a.output.findings.length : 0;
               return (
@@ -106,9 +109,9 @@ function InterpretPanel({ scan, onDone }: { scan: ScanDetail; onDone: () => void
                   <span>
                     {count} suggestion(s) from <span className="font-mono text-xs">{a.model}</span>
                   </span>
-                  <span className="text-xs text-slate-500">
-                    {a.creator?.name ?? 'unknown'} · {formatDateTime(a.created_at)}
-                    {a.tokens_in !== null && ` · ${a.tokens_in}+${a.tokens_out ?? 0} tokens`}
+                  <span className="text-xs text-ink-500">
+                    {formatDateTime(a.created_at)}, for {a.creator?.name ?? 'unknown'}
+                    {a.tokens_in !== null && `, ${a.tokens_in + (a.tokens_out ?? 0)} tokens`}
                   </span>
                 </li>
               );
@@ -189,7 +192,7 @@ export default function ScanDetailPage() {
         <Card>
           <CardHeader title={`Results (${total})`} />
           {counts.length > 0 && (
-            <div className="flex flex-wrap gap-2 border-b border-slate-100 px-5 py-3" role="tablist" aria-label="Result type">
+            <div className="flex flex-wrap gap-2 border-b border-ink-100 px-5 py-3" role="tablist" aria-label="Result type">
               {[[undefined, total] as const, ...counts].map(([t, n]) => (
                 <button
                   key={t ?? 'all'}
@@ -199,7 +202,7 @@ export default function ScanDetailPage() {
                     setType(t);
                     setPage(1);
                   }}
-                  className={cn('rounded-full px-3 py-1 text-xs font-medium', type === t ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200')}
+                  className={cn('rounded-full px-3 py-1 text-xs font-medium', type === t ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-700 hover:bg-ink-200')}
                 >
                   {t ? humanize(t) : 'All'} ({n})
                 </button>
@@ -220,7 +223,7 @@ export default function ScanDetailPage() {
               <tbody>
                 {s.results.map((r, i) => (
                   <tr key={r.id}>
-                    <Td className="text-xs text-slate-400">{(page - 1) * 50 + i + 1}</Td>
+                    <Td className="text-xs text-ink-400">{(page - 1) * 50 + i + 1}</Td>
                     <Td className="text-xs">{humanize(r.type)}</Td>
                     <Td>
                       <ResultSummary type={r.type} data={r.data} />

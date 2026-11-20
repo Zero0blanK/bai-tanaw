@@ -42,7 +42,7 @@ export default function AuditPage() {
     <>
       <PageHeader title="Audit log" description="Sign-ins, scope blocks, scans, AI requests, verifications and report exports." />
       <Card>
-        <div className="border-b border-slate-100 px-5 py-4 sm:w-72">
+        <div className="border-b border-ink-100 px-5 py-4 sm:w-72">
           <Label htmlFor="audit-action">Action</Label>
           <Select
             id="audit-action"
@@ -86,10 +86,10 @@ export default function AuditPage() {
                   </Td>
                   <Td className="text-xs">
                     {l.actor ? l.actor.name : '-'}
-                    {l.ip && <div className="text-slate-400">{l.ip}</div>}
+                    {l.ip && <div className="text-ink-400">{l.ip}</div>}
                   </Td>
                   <Td>
-                    {l.metadata && <code className="block max-w-xl whitespace-pre-wrap break-all text-[11px] text-slate-600">{JSON.stringify(l.metadata)}</code>}
+                    {l.metadata && <code className="block max-w-xl whitespace-pre-wrap break-all text-[11px] text-ink-600">{JSON.stringify(l.metadata)}</code>}
                   </Td>
                 </tr>
               ))}

@@ -190,7 +190,7 @@ function AiSettingsCard() {
             )}
           </div>
         </form>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-500">
           The key is encrypted with AES-256-GCM using a key derived (scrypt) from the server&apos;s SETTINGS_ENCRYPTION_KEY,
           and only the worker decrypts it, per AI job. Nobody can read it back through the app; only its last 4
           characters are shown.

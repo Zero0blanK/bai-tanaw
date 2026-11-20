@@ -91,7 +91,7 @@ export function VerifyForm({ finding, onSaved }: { finding: FindingDetail; onSav
               <Field label="CVSS score" htmlFor="v-score">
                 <Input id="v-score" type="number" min={0} max={10} step={0.1} value={computed ?? score} disabled={computed !== null} onChange={(e) => setScore(e.target.value)} />
               </Field>
-              <Field label="Final severity" htmlFor="v-severity" hint={finding.ai_severity ? `AI suggested ${humanize(finding.ai_severity)}.` : undefined}>
+              <Field label="Final severity" htmlFor="v-severity" hint={finding.ai_severity ? `Suggested: ${humanize(finding.ai_severity)}.` : undefined}>
                 <Select id="v-severity" value={severity} onChange={(e) => setSeverity(e.target.value as Severity)}>
                   <option value="">Choose…</option>
                   {SEVERITIES.map((s) => (

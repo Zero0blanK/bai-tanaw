@@ -16,14 +16,14 @@ export function ResultSummary({ type, data }: { type: ScanResultType; data: Data
           <span className="flex flex-wrap items-center gap-2">
             <code className="text-xs">{s(data.header)}</code>
             {data.present ? <Badge tone="green">present</Badge> : <Badge tone="amber">missing</Badge>}
-            {data.value ? <span className="break-all text-xs text-slate-500">{s(data.value)}</span> : null}
+            {data.value ? <span className="break-all text-xs text-ink-500">{s(data.value)}</span> : null}
           </span>
         );
       return (
         <span className="flex flex-wrap items-center gap-2">
           <code className="text-xs">{s(data.header)}</code>
           <Badge tone="orange">discloses</Badge>
-          <span className="text-xs text-slate-600">{s(data.value)}</span>
+          <span className="text-xs text-ink-600">{s(data.value)}</span>
         </span>
       );
     case 'COOKIE':
@@ -50,14 +50,14 @@ export function ResultSummary({ type, data }: { type: ScanResultType; data: Data
         <span className="flex flex-wrap items-center gap-2">
           <code className="text-xs">{s(data.from)}</code> → {s(data.status)} {s(data.location)}
           <span className="text-xs">to HTTPS</span> {yes(data.redirects_to_https)}
-          {data.error ? <span className="text-xs text-slate-500">{s(data.error)}</span> : null}
+          {data.error ? <span className="text-xs text-ink-500">{s(data.error)}</span> : null}
         </span>
       );
     case 'DNS_RECORD':
       return (
         <span>
           <Badge>{s(data.record_type)}</Badge> <code className="ml-1 break-all text-xs">{s(data.value)}</code>
-          {data.ttl !== null && data.ttl !== undefined ? <span className="ml-2 text-xs text-slate-500">TTL {s(data.ttl)}</span> : null}
+          {data.ttl !== null && data.ttl !== undefined ? <span className="ml-2 text-xs text-ink-500">TTL {s(data.ttl)}</span> : null}
         </span>
       );
     case 'ENDPOINT':
@@ -67,7 +67,7 @@ export function ResultSummary({ type, data }: { type: ScanResultType; data: Data
           <code className="text-xs">{s(data.path)}</code>
           {data.requires_auth ? <Badge>auth</Badge> : <Badge tone="amber">public</Badge>}
           {data.admin_route ? <Badge tone="purple">admin</Badge> : null}
-          {data.summary ? <span className="text-xs text-slate-500">{s(data.summary)}</span> : null}
+          {data.summary ? <span className="text-xs text-ink-500">{s(data.summary)}</span> : null}
         </span>
       );
     case 'PORT':
@@ -89,14 +89,14 @@ export function ResultSummary({ type, data }: { type: ScanResultType; data: Data
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={data.risk === 'High' ? 'red' : data.risk === 'Medium' ? 'amber' : data.risk === 'Low' ? 'blue' : 'slate'}>{s(data.risk)}</Badge>
             <b>{s(data.name)}</b>
-            {data.cwe_id ? <span className="text-xs text-slate-500">CWE-{s(data.cwe_id)}</span> : null}
+            {data.cwe_id ? <span className="text-xs text-ink-500">CWE-{s(data.cwe_id)}</span> : null}
           </div>
           {instances.length > 0 && (
-            <ul className="mt-1 list-inside list-disc text-xs text-slate-600">
+            <ul className="mt-1 list-inside list-disc text-xs text-ink-600">
               {instances.map((i, n) => (
                 <li key={n} className="break-all">
                   {s(i.method)} {s(i.uri)}
-                  {i.evidence ? <span className="text-slate-400"> · {s(i.evidence)}</span> : null}
+                  {i.evidence ? <span className="text-ink-400"> · {s(i.evidence)}</span> : null}
                 </li>
               ))}
             </ul>

@@ -39,14 +39,14 @@ function ScopeTester({ targetId }: { targetId: string }) {
   }
 
   return (
-    <form onSubmit={check} className="flex flex-wrap items-end gap-2 border-t border-slate-100 px-5 py-4">
+    <form onSubmit={check} className="flex flex-wrap items-end gap-2 border-t border-ink-100 px-5 py-4">
       <Field label="Test the scope" htmlFor="scope-test" className="min-w-[16rem] flex-1">
         <Input id="scope-test" value={value} onChange={(e) => setValue(e.target.value)} placeholder="https://bayawjobs.riomar.dev/admin" />
       </Field>
       <Button type="submit" variant="secondary" disabled={!value.trim()}>
         Check
       </Button>
-      <p className="w-full text-xs text-slate-500">A URL, a host, or host:port. Dry run, nothing is contacted.</p>
+      <p className="w-full text-xs text-ink-500">A URL, a host, or host:port. Dry run, nothing is contacted.</p>
       {result && (
         <div className="w-full">
           {result.ok ? <Alert kind="success">In scope.</Alert> : <Alert kind="warning">Out of scope: {result.reason}</Alert>}
@@ -128,10 +128,10 @@ export function ScopeRules({ targetId, rules, canEdit, onChange }: { targetId: s
                 <Td>{humanize(r.asset_type)}</Td>
                 <Td className="font-mono text-xs">{r.value}</Td>
                 <Td>{r.in_scope ? <Badge tone="green">In scope</Badge> : <Badge tone="red">Out of scope</Badge>}</Td>
-                <Td className="text-xs text-slate-500">{r.notes ?? ''}</Td>
+                <Td className="text-xs text-ink-500">{r.notes ?? ''}</Td>
                 {canEdit && (
                   <Td>
-                    <button onClick={() => void remove(r)} className="text-slate-400 hover:text-red-600" aria-label={`Delete rule ${r.value}`}>
+                    <button onClick={() => void remove(r)} className="text-ink-400 hover:text-red-600" aria-label={`Delete rule ${r.value}`}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </Td>
@@ -142,7 +142,7 @@ export function ScopeRules({ targetId, rules, canEdit, onChange }: { targetId: s
         </Table>
       )}
       {canEdit && (
-        <CardBody className="border-t border-slate-100">
+        <CardBody className="border-t border-ink-100">
           <form onSubmit={add} className="grid grid-cols-1 gap-3 sm:grid-cols-[9rem_1fr_9rem_1fr_auto] sm:items-end" noValidate>
             <Field label="Type" htmlFor="asset_type">
               <Select id="asset_type" value={assetType} onChange={(e) => setAssetType(e.target.value as ScopeAssetType)}>

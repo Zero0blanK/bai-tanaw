@@ -88,16 +88,16 @@ export default function FindingDetailPage() {
                 ['Category', CATEGORY_LABEL[f.category]],
                 ['Affected asset', <span key="a" className="font-mono text-xs">{f.affected_asset}</span>],
                 ['Final severity', <SeverityBadge key="fs" severity={f.final_severity} />],
-                ['AI suggested severity', <SeverityBadge key="as" severity={f.ai_severity} />],
-                ['CVSS v3.1', f.cvss_score !== null ? <span key="c">{f.cvss_score} <span className="font-mono text-xs text-slate-500">{f.cvss_vector}</span></span> : '-'],
+                ['Suggested severity', <SeverityBadge key="as" severity={f.ai_severity} />],
+                ['CVSS v3.1', f.cvss_score !== null ? <span key="c">{f.cvss_score} <span className="font-mono text-xs text-ink-500">{f.cvss_vector}</span></span> : '-'],
                 ['OWASP Top 10 / WSTG', [f.owasp_top10, f.wstg_id].filter(Boolean).join(' · ') || '-'],
                 ['From scan', f.scan ? <Link key="s" href={`/scans/${f.scan.id}`} className="text-brand-700 hover:underline">{humanize(f.scan.tool)} ({formatDateTime(f.scan.created_at)})</Link> : 'Manual'],
                 ['Created', formatDateTime(f.created_at)],
               ]}
             />
             <div>
-              <p className="text-xs font-medium text-slate-500">Description</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{f.description}</p>
+              <p className="text-xs font-medium text-ink-500">Description</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-ink-800">{f.description}</p>
             </div>
           </CardBody>
         </Card>
@@ -113,16 +113,16 @@ export default function FindingDetailPage() {
           {f.verification_logs.length === 0 ? (
             <Empty title="No decisions yet" />
           ) : (
-            <ol className="divide-y divide-slate-100 px-5">
+            <ol className="divide-y divide-ink-100 px-5">
               {f.verification_logs.map((l) => (
                 <li key={l.id} className="py-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <FindingStatusBadge status={l.old_status} /> → <FindingStatusBadge status={l.new_status} />
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-ink-500">
                       {l.assessor?.name ?? 'deleted user'} · {formatDateTime(l.created_at)}
                     </span>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-slate-700">{l.notes}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-ink-700">{l.notes}</p>
                 </li>
               ))}
             </ol>

@@ -1,11 +1,11 @@
 'use client';
 
-import { FINDING_CATEGORIES, FINDING_SOURCES, FINDING_STATUSES } from '@tanaw/shared';
-import { Plus } from 'lucide-react';
+import { FINDING_CATEGORIES, FINDING_SOURCES, type FindingStatus, type Severity } from '@tanaw/shared';
+import { Paperclip, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SeverityBadge, SourceBadge } from '@/components/shared/badges';
+import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SEVERITY_COLOR, SeverityBadge, SOURCE_LABEL, SourceBadge } from '@/components/shared/badges';
 import { useAuth } from '@/components/shared/auth-provider';
 import { PageHeader, Pagination } from '@/components/shared/page';
 import { ManualFindingForm } from '@/components/findings/manual-finding-form';
@@ -13,12 +13,56 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Alert, Empty, Spinner } from '@/components/ui/feedback';
 import { Label, Select } from '@/components/ui/form';
-import { Table, Td, Th } from '@/components/ui/table';
 import { useApi } from '@/hooks/useApi';
-import { formatDate, humanize } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import type { Finding, Target } from '@/types/api';
 
 const FILTERS = ['target_id', 'status', 'category', 'source'] as const;
+
+/** The status is the main way to slice findings, so it gets tabs; the rest are secondary filters. */
+const STATUS_TABS: Array<{ value: FindingStatus | ''; label: string }> = [
+  { value: 'PENDING', label: 'To verify' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'FIXED', label: 'Fixed' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'FALSE_POSITIVE', label: 'False positive' },
+  { value: '', label: 'All' },
+];
+
+function FindingRow({ f }: { f: Finding }) {
+  const severity: Severity | null = f.final_severity ?? f.ai_severity;
+  return (
+    <li>
+      <Link href={`/findings/${f.id}`} className="group flex gap-4 px-5 py-4 transition-colors hover:bg-ink-50/70">
+        <span aria-hidden className="w-1 shrink-0 rounded-full" style={{ backgroundColor: severity ? SEVERITY_COLOR[severity] : 'var(--color-ink-200)' }} />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-ink-900 group-hover:text-brand-700">{f.title}</p>
+          <p className="mt-1 truncate text-[13px] text-ink-500">
+            <span className="font-medium text-ink-600">{f.target?.name}</span>
+            <span className="mx-2 text-ink-300">/</span>
+            {f.affected_asset}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {f.source === 'AI' && f.status === 'PENDING' ? <AiUnverifiedBadge /> : <SourceBadge source={f.source} />}
+            <span className="text-xs text-ink-500">{CATEGORY_LABEL[f.category]}</span>
+            {f.wstg_id && <span className="text-xs text-ink-400">{f.wstg_id}</span>}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2 text-right">
+          {f.final_severity ? <SeverityBadge severity={f.final_severity} /> : <SeverityBadge severity={f.ai_severity} prefix="Suggested " />}
+          <FindingStatusBadge status={f.status} />
+          <span className="flex items-center gap-2 text-xs text-ink-400">
+            <span className="flex items-center gap-0.5" title="Evidence items">
+              <Paperclip className="h-3 w-3" aria-hidden />
+              {f._count?.evidence ?? 0}
+            </span>
+            {formatDate(f.created_at)}
+          </span>
+        </div>
+      </Link>
+    </li>
+  );
+}
 
 function FindingsView() {
   const router = useRouter();
@@ -40,10 +84,12 @@ function FindingsView() {
   }
 
   const filterSelect = (key: (typeof FILTERS)[number], label: string, options: Array<[string, string]>) => (
-    <div>
-      <Label htmlFor={`f-${key}`}>{label}</Label>
-      <Select id={`f-${key}`} value={filters[key]} onChange={(e) => setParam(key, e.target.value)}>
-        <option value="">All</option>
+    <div className="min-w-0">
+      <Label htmlFor={`f-${key}`} className="sr-only">
+        {label}
+      </Label>
+      <Select id={`f-${key}`} value={filters[key]} onChange={(e) => setParam(key, e.target.value)} className="h-9">
+        <option value="">{`Any ${label.toLowerCase()}`}</option>
         {options.map(([v, l]) => (
           <option key={v} value={v}>
             {l}
@@ -57,81 +103,73 @@ function FindingsView() {
     <>
       <PageHeader
         title="Findings"
-        description="Tools and AI only suggest. A finding counts once an assessor confirms it."
+        description="Every scan adds findings here on its own, from tool rules and the AI. They only count once an assessor confirms them."
         actions={
           can('ADMIN', 'ASSESSOR') && (
             <Button onClick={() => setShowForm((v) => !v)} variant={showForm ? 'secondary' : 'primary'}>
               <Plus className="h-4 w-4" aria-hidden />
-              {showForm ? 'Close' : 'Manual finding'}
+              {showForm ? 'Close' : 'Add manual finding'}
             </Button>
           )
         }
       />
       {showForm && targets.data && (
         <Card className="mb-6">
-          <CardHeader title="Record a manual finding" description="For hand tests (for example an IDOR found with two test accounts). It starts PENDING." />
+          <CardHeader title="Record a manual finding" description="For hand tests, such as an IDOR found with two test accounts. It starts as To verify." />
           <CardBody>
-            <ManualFindingForm
-              targets={targets.data}
-              defaultTargetId={filters.target_id}
-              onCreated={(id) => router.push(`/findings/${id}`)}
-            />
+            <ManualFindingForm targets={targets.data} defaultTargetId={filters.target_id} onCreated={(id) => router.push(`/findings/${id}`)} />
           </CardBody>
         </Card>
       )}
+
+      <div role="tablist" aria-label="Status" className="mb-4 flex gap-1 overflow-x-auto border-b border-ink-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {STATUS_TABS.map((tab) => {
+          const active = filters.status === tab.value;
+          return (
+            <button
+              key={tab.label}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setParam('status', tab.value)}
+              className={cn(
+                '-mb-px whitespace-nowrap border-b-2 px-3 pb-2.5 text-sm font-semibold transition-colors',
+                active ? 'border-brand-600 text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-800',
+                tab.value === 'PENDING' && !active && 'text-amber-700',
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       <Card>
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-5 py-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 border-b border-ink-100 px-5 py-3 sm:grid-cols-3">
           {filterSelect('target_id', 'Target', (targets.data ?? []).map((t) => [t.id, t.name]))}
-          {filterSelect('status', 'Status', FINDING_STATUSES.map((s) => [s, humanize(s)]))}
           {filterSelect('category', 'Category', FINDING_CATEGORIES.map((c) => [c, CATEGORY_LABEL[c]]))}
-          {filterSelect('source', 'Source', FINDING_SOURCES.map((s) => [s, humanize(s)]))}
+          {filterSelect('source', 'Source', FINDING_SOURCES.map((s) => [s, SOURCE_LABEL[s]]))}
         </div>
-        {findings.loading && !findings.data && <Spinner />}
+        {findings.loading && !findings.data && (
+          <div className="px-5">
+            <Spinner />
+          </div>
+        )}
         {findings.error && (
-          <CardBody>
+          <CardBody className="pt-5">
             <Alert kind="error">{findings.error}</Alert>
           </CardBody>
         )}
-        {findings.data?.length === 0 && <Empty title="No findings match these filters" />}
+        {findings.data?.length === 0 && (
+          <Empty title={filters.status === 'PENDING' ? 'Nothing waiting for verification' : 'No findings match these filters'}>
+            Run a full assessment from a target page and its scans turn into findings here.
+          </Empty>
+        )}
         {findings.data && findings.data.length > 0 && (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Finding</Th>
-                <Th>Category</Th>
-                <Th>Status</Th>
-                <Th>Severity</Th>
-                <Th>Source</Th>
-                <Th>Evidence</Th>
-                <Th>Created</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {findings.data.map((f) => (
-                <tr key={f.id} className="hover:bg-slate-50">
-                  <Td className="max-w-md">
-                    <Link href={`/findings/${f.id}`} className="font-medium text-brand-700 hover:underline">
-                      {f.title}
-                    </Link>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      {f.target?.name}
-                      {f.source === 'AI' && f.status === 'PENDING' && <AiUnverifiedBadge />}
-                    </div>
-                  </Td>
-                  <Td className="text-xs">{CATEGORY_LABEL[f.category]}</Td>
-                  <Td>
-                    <FindingStatusBadge status={f.status} />
-                  </Td>
-                  <Td>{f.final_severity ? <SeverityBadge severity={f.final_severity} /> : <SeverityBadge severity={f.ai_severity} prefix="AI: " />}</Td>
-                  <Td>
-                    <SourceBadge source={f.source} />
-                  </Td>
-                  <Td>{f._count?.evidence ?? 0}</Td>
-                  <Td className="whitespace-nowrap text-xs">{formatDate(f.created_at)}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <ul className="divide-y divide-ink-100">
+            {findings.data.map((f) => (
+              <FindingRow key={f.id} f={f} />
+            ))}
+          </ul>
         )}
         <Pagination meta={findings.meta} onPage={(p) => setParam('page', p)} />
       </Card>
