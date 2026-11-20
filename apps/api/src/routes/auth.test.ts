@@ -157,4 +157,59 @@ describe.skipIf(!hasTestDb)('auth', () => {
       expect(await auditActions()).toContain('logout');
     });
   });
+  describe('POST /api/auth/password', () => {
+    const NEW_PASSWORD = 'Brand-New-Pass-456!';
+
+    it('changes the password, signs out other sessions and keeps this one', async () => {
+      const user = await createUser('ASSESSOR');
+      const other = await login(app, user.email);
+      const otherCookie = other.cookie;
+      const { token } = await login(app, user.email);
+
+      const res = await request(app)
+        .post('/api/auth/password')
+        .set('authorization', `Bearer ${token}`)
+        .send({ current_password: PASSWORD, new_password: NEW_PASSWORD });
+      expect(res.status).toBe(200);
+      expect(res.body.data.access_token).toEqual(expect.any(String));
+      expect(refreshCookieFrom(res)).toMatch(/HttpOnly/i);
+      const freshCookie = refreshCookieFrom(res)?.split(';')[0] ?? '';
+
+      expect((await request(app).post('/api/auth/refresh').set('cookie', otherCookie)).status).toBe(401);
+      expect((await request(app).post('/api/auth/refresh').set('cookie', freshCookie)).status).toBe(200);
+      expect((await request(app).post('/api/auth/login').send({ email: user.email, password: PASSWORD })).status).toBe(401);
+      expect((await login(app, user.email, NEW_PASSWORD)).res.status).toBe(200);
+      expect(await auditActions()).toContain('password_changed');
+    });
+
+    it('refuses a wrong current password with 400 and counts it as a failed login', async () => {
+      const user = await createUser('VIEWER');
+      const { token } = await login(app, user.email);
+      const res = await request(app)
+        .post('/api/auth/password')
+        .set('authorization', `Bearer ${token}`)
+        .send({ current_password: 'Wrong-Pass-123!', new_password: NEW_PASSWORD });
+      expect(res.status).toBe(400);
+      const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+      expect(stored.failed_login_attempts).toBe(1);
+      expect(await auditActions()).toContain('login_failed');
+    });
+
+    it('rejects a weak or unchanged new password and needs a session', async () => {
+      const user = await createUser('VIEWER');
+      const { token } = await login(app, user.email);
+      const weak = await request(app)
+        .post('/api/auth/password')
+        .set('authorization', `Bearer ${token}`)
+        .send({ current_password: PASSWORD, new_password: 'short' });
+      expect(weak.status).toBe(400);
+      const same = await request(app)
+        .post('/api/auth/password')
+        .set('authorization', `Bearer ${token}`)
+        .send({ current_password: PASSWORD, new_password: PASSWORD });
+      expect(same.status).toBe(400);
+      const anon = await request(app).post('/api/auth/password').send({ current_password: PASSWORD, new_password: NEW_PASSWORD });
+      expect(anon.status).toBe(401);
+    });
+  });
 });

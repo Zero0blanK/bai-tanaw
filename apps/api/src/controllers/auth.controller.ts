@@ -1,4 +1,4 @@
-import { LoginBody } from '@tanaw/shared';
+import { ChangePasswordBody, LoginBody } from '@tanaw/shared';
 import type { CookieOptions, Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { AUTH } from '../constants/auth.js';
@@ -48,6 +48,13 @@ export const authController = {
     await authService.logout(readRefreshCookie(req), clientContext(req));
     res.clearCookie(AUTH.REFRESH_COOKIE, cookieOptions());
     ok(res, null, 'Signed out');
+  },
+
+  async changePassword(req: Request, res: Response) {
+    if (!req.user) throw new AuthenticationError();
+    const { current_password, new_password } = ChangePasswordBody.parse(req.body);
+    const session = await authService.changePassword(req.user.id, current_password, new_password, clientContext(req));
+    sendSession(res, session, 'Password changed. Other sessions were signed out.');
   },
 
   async me(req: Request, res: Response) {

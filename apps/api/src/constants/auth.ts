@@ -11,6 +11,7 @@ export const AUTH = {
 
 export const MESSAGES = {
   INVALID_CREDENTIALS: 'Invalid email or password',
+  WRONG_CURRENT_PASSWORD: 'Current password is incorrect',
   ACCOUNT_LOCKED: 'Too many failed logins. Try again later.',
   TOKEN_REQUIRED: 'Authentication required',
   TOKEN_INVALID: 'Invalid or expired access token',

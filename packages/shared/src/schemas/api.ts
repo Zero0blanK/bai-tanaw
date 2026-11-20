@@ -55,6 +55,16 @@ export const LoginBody = z.object({
   password: z.string().min(1).max(128),
 });
 
+export const ChangePasswordBody = z
+  .object({
+    current_password: z.string().min(1).max(128),
+    new_password: passwordSchema,
+  })
+  .refine((b) => b.current_password !== b.new_password, {
+    path: ['new_password'],
+    message: 'new password must differ from the current one',
+  });
+
 export const CreateUserBody = z.object({
   email: z.email().trim().toLowerCase().max(254),
   name: z.string().trim().min(2).max(120),
@@ -189,6 +199,7 @@ export const AddEvidenceBody = z.object({
 export const DashboardQuery = z.object({ target_id: uuid('target_id').optional() });
 
 export type LoginInput = z.infer<typeof LoginBody>;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordBody>;
 export type CreateUserInput = z.infer<typeof CreateUserBody>;
 export type UpdateUserInput = z.infer<typeof UpdateUserBody>;
 export type CreateTargetInput = z.infer<typeof CreateTargetBody>;

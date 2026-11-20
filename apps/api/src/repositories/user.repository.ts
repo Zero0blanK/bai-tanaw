@@ -1,5 +1,5 @@
 import type { Prisma, Role } from '@prisma/client';
-import { prisma } from '../config/prisma.js';
+import { prisma, type Tx } from '../config/prisma.js';
 
 /** Columns safe to return to clients (never password_hash). */
 export const publicUserSelect = {
@@ -69,6 +69,10 @@ export const userRepository = {
 
   lock(id: string, until: Date) {
     return prisma.user.update({ where: { id }, data: { locked_until: until, failed_login_attempts: 0 } });
+  },
+
+  setPassword(id: string, password_hash: string, tx: Tx = prisma) {
+    return tx.user.update({ where: { id }, data: { password_hash, failed_login_attempts: 0, locked_until: null } });
   },
 
   recordSuccessfulLogin(id: string) {

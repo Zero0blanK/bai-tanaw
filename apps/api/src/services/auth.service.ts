@@ -3,8 +3,15 @@ import { AUTH, MESSAGES } from '../constants/auth.js';
 import { refreshTokenRepository } from '../repositories/refreshToken.repository.js';
 import { withTransaction } from '../repositories/transaction.js';
 import { userRepository, type PublicUser } from '../repositories/user.repository.js';
-import { burnPasswordCheck, durationToMs, generateRefreshToken, hashRefreshToken, verifyPassword } from '../utils/crypto.js';
-import { AuthenticationError, TooManyRequestsError } from '../utils/errors.js';
+import {
+  burnPasswordCheck,
+  durationToMs,
+  generateRefreshToken,
+  hashPassword,
+  hashRefreshToken,
+  verifyPassword,
+} from '../utils/crypto.js';
+import { AuthenticationError, BadRequestError, TooManyRequestsError } from '../utils/errors.js';
 import { signAccessToken } from '../utils/jwt.js';
 import { auditService, type Actor } from './audit.service.js';
 
@@ -135,6 +142,57 @@ export const authService = {
     if (!stored) return;
     await refreshTokenRepository.revoke(stored.id);
     await auditService.log('logout', { ...ctx, id: stored.user_id });
+  },
+
+  /**
+   * Changes the signed-in user's password. A wrong current password counts as a failed login (same lockout),
+   * so a stolen access token can't be used to guess it. On success every session is revoked and this
+   * device gets a fresh one.
+   */
+  async changePassword(userId: string, current: string, next: string, ctx: ClientContext): Promise<Session> {
+    const user = await userRepository.findById(userId);
+    if (!user || !user.is_active) throw new AuthenticationError(MESSAGES.TOKEN_INVALID);
+    const actor = { ...ctx, id: user.id };
+
+    if (user.locked_until && user.locked_until > new Date()) {
+      throw new TooManyRequestsError(MESSAGES.ACCOUNT_LOCKED);
+    }
+    if (!(await verifyPassword(current, user.password_hash))) {
+      const attempts = await userRepository.recordFailedLogin(user.id);
+      if (attempts >= AUTH.MAX_LOGIN_ATTEMPTS) {
+        const until = new Date(Date.now() + AUTH.LOCK_MINUTES * 60_000);
+        await userRepository.lock(user.id, until);
+        await auditService.log('login_locked', actor, { metadata: { email: user.email, attempts, context: 'password_change' } });
+      } else {
+        await auditService.log('login_failed', actor, { metadata: { email: user.email, reason: 'bad_current_password', attempts } });
+      }
+      // 400, not 401: the session is fine, only the typed password is wrong.
+      throw new BadRequestError(MESSAGES.WRONG_CURRENT_PASSWORD);
+    }
+
+    const password_hash = await hashPassword(next);
+    const refresh = newRefreshToken();
+    await withTransaction(async (tx) => {
+      await userRepository.setPassword(user.id, password_hash, tx);
+      await refreshTokenRepository.revokeAllForUser(user.id, tx);
+      await refreshTokenRepository.create(
+        {
+          user_id: user.id,
+          token_hash: refresh.token_hash,
+          expires_at: refresh.expires_at,
+          user_agent: ctx.userAgent?.slice(0, 300) ?? null,
+          ip: ctx.ip ?? null,
+        },
+        tx,
+      );
+    });
+    await auditService.log('password_changed', actor);
+
+    return {
+      access_token: signAccessToken({ sub: user.id, role: user.role }),
+      user: toPublic(user),
+      refresh: { token: refresh.token, expires_at: refresh.expires_at },
+    };
   },
 
   async me(userId: string): Promise<PublicUser> {

@@ -1,4 +1,4 @@
-import { LoginBody } from '@tanaw/shared';
+import { ChangePasswordBody, LoginBody } from '@tanaw/shared';
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.js';
@@ -11,5 +11,12 @@ export function createAuthRouter(): Router {
   router.post('/refresh', authController.refresh);
   router.post('/logout', authController.logout);
   router.get('/me', authenticate, authController.me);
+  router.post(
+    '/password',
+    authenticate,
+    createLoginLimiter(),
+    validate({ body: ChangePasswordBody }),
+    authController.changePassword,
+  );
   return router;
 }
