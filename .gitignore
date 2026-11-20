@@ -30,3 +30,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Local agent instructions (kept out of the repository)
+AGENT.md
+CLAUDE.md
