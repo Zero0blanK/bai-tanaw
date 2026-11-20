@@ -6,13 +6,14 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '@/components/shared/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
-import { Field, Input } from '@/components/ui/form';
+import { Field, fieldDescribedBy, Input, issuesByField } from '@/components/ui/form';
 import { errorMessage } from '@/lib/api';
 
 export function LoginForm() {
   const { login, user, loading } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -24,9 +25,14 @@ export function LoginForm() {
     const form = new FormData(event.currentTarget);
     const parsed = LoginBody.safeParse({ email: form.get('email'), password: form.get('password') });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Check your email and password');
+      const byField = issuesByField(parsed.error.issues);
+      setFieldErrors({
+        ...(byField.email ? { email: 'Enter the email address of your Tanaw account' } : {}),
+        ...(byField.password ? { password: 'Enter your password' } : {}),
+      });
       return;
     }
+    setFieldErrors({});
     setError(null);
     setSubmitting(true);
     try {
@@ -41,14 +47,22 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
-      <Field label="Email" htmlFor="email">
-        <Input id="email" name="email" type="email" autoComplete="username" required />
+      <Field label="Email" htmlFor="email" error={fieldErrors.email}>
+        <Input id="email" name="email" type="email" autoComplete="username" required aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldDescribedBy('email', { error: fieldErrors.email })} />
       </Field>
-      <Field label="Password" htmlFor="password">
-        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+      <Field label="Password" htmlFor="password" error={fieldErrors.password}>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          aria-invalid={Boolean(fieldErrors.password)}
+          aria-describedby={fieldDescribedBy('password', { error: fieldErrors.password })}
+        />
       </Field>
       {error && <Alert kind="error">{error}</Alert>}
-      <Button type="submit" className="w-full" loading={submitting}>
+      <Button type="submit" size="lg" className="w-full" loading={submitting}>
         Sign in
       </Button>
     </form>

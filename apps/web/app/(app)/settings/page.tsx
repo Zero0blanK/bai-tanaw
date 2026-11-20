@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Alert, Spinner } from '@/components/ui/feedback';
+import { useConfirm } from '@/components/ui/confirm';
 import { Field, Input, Select } from '@/components/ui/form';
+import { useToast } from '@/components/ui/toast';
 import { useApi } from '@/hooks/useApi';
 import { api, errorMessage } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
@@ -53,6 +55,8 @@ function AiSettingsCard() {
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const current = settings.data;
   useEffect(() => {
@@ -74,7 +78,7 @@ function AiSettingsCard() {
       await api('/settings/ai', { method: 'PUT', body: parsed.data });
       // The key leaves the browser once; drop it from memory right away.
       setApiKey('');
-      setNotice({ kind: 'success', text: message });
+      toast({ title: 'AI settings saved', body: message });
       await settings.reload();
     } catch (e) {
       setError(errorMessage(e));
@@ -88,7 +92,7 @@ function AiSettingsCard() {
     const key = apiKey.trim();
     void save(
       { provider, model: model.trim() || AI_DEFAULT_MODELS[provider], ...(key ? { api_key: key } : {}) },
-      key ? 'Saved. The key was encrypted and stored; it will not be shown again.' : 'Saved.',
+      key ? 'The key was encrypted and stored. It will not be shown again.' : 'Provider and model updated.',
     );
   }
 
@@ -106,8 +110,14 @@ function AiSettingsCard() {
     }
   }
 
-  function removeKey() {
-    if (!window.confirm('Remove the stored API key? AI features stop working until a new key is saved.')) return;
+  async function removeKey() {
+    const ok = await confirm({
+      title: 'Remove the stored API key?',
+      body: 'Automatic AI interpretation and "Suggest fix" stop until a new key is saved. The encrypted key is deleted and cannot be recovered from Tanaw.',
+      confirmLabel: 'Remove key',
+      tone: 'danger',
+    });
+    if (!ok) return;
     void save({ provider, model: model.trim() || AI_DEFAULT_MODELS[provider], clear_key: true }, 'The stored key was deleted.');
   }
 
@@ -183,7 +193,7 @@ function AiSettingsCard() {
               Test connection
             </Button>
             {current?.key_stored && (
-              <Button variant="danger" onClick={removeKey} disabled={saving}>
+              <Button variant="danger" onClick={() => void removeKey()} disabled={saving}>
                 <KeyRound className="h-4 w-4" aria-hidden />
                 Remove key
               </Button>

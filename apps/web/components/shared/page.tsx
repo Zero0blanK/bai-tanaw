@@ -1,31 +1,23 @@
+'use client';
+
 import type { PaginationMeta } from '@tanaw/shared';
-import { ChevronRight } from 'lucide-react';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { useBreadcrumbDetail } from './shell-context';
 
+/**
+ * The one page-title pattern. `crumbs` marks a detail page: its title becomes the last breadcrumb in the top bar
+ * (the section link before it comes from the navigation), so pages don't draw their own breadcrumbs.
+ */
 export function PageHeader({ title, description, actions, crumbs }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; crumbs?: Array<{ href: string; label: string }> }) {
+  useBreadcrumbDetail(crumbs && typeof title === 'string' ? title : null);
   return (
-    <header className="mb-8">
-      {crumbs && crumbs.length > 0 && (
-        <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1.5 text-[13px] text-ink-500">
-          {crumbs.map((c, i) => (
-            <span key={c.href} className="flex items-center gap-1.5">
-              {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-ink-300" aria-hidden />}
-              <Link href={c.href} className="rounded hover:text-brand-700">
-                {c.label}
-              </Link>
-            </span>
-          ))}
-        </nav>
-      )}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-display text-[28px] leading-tight font-semibold tracking-[-0.02em] text-ink-900 sm:text-[32px]">{title}</h1>
-          {description && <div className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-500">{description}</div>}
-        </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="font-display text-[26px] leading-tight font-semibold tracking-[-0.02em] text-ink-900 sm:text-[30px]">{title}</h1>
+        {description && <div className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-500">{description}</div>}
       </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
   );
 }

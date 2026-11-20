@@ -4,20 +4,21 @@ import { FINDING_CATEGORIES, FINDING_SOURCES, type FindingStatus, type Severity 
 import { Paperclip, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SEVERITY_COLOR, SeverityBadge, SOURCE_LABEL, SourceBadge } from '@/components/shared/badges';
 import { useAuth } from '@/components/shared/auth-provider';
 import { PageHeader, Pagination } from '@/components/shared/page';
 import { ManualFindingForm } from '@/components/findings/manual-finding-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { Alert, Empty, Spinner } from '@/components/ui/feedback';
-import { Label, Select } from '@/components/ui/form';
+import { Alert, Empty, SkeletonRows, Spinner } from '@/components/ui/feedback';
+import { Label, SearchInput, Select } from '@/components/ui/form';
+import { Tabs } from '@/components/ui/tabs';
 import { useApi } from '@/hooks/useApi';
-import { cn, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import type { Finding, Target } from '@/types/api';
 
-const FILTERS = ['target_id', 'status', 'category', 'source'] as const;
+const FILTERS = ['target_id', 'status', 'category', 'source', 'q'] as const;
 
 /** The status is the main way to slice findings, so it gets tabs; the rest are secondary filters. */
 const STATUS_TABS: Array<{ value: FindingStatus | ''; label: string }> = [
@@ -74,6 +75,15 @@ function FindingsView() {
   const page = Number(params.get('page') ?? 1) || 1;
   const targets = useApi<Target[]>('/targets');
   const findings = useApi<Finding[]>('/findings', { ...filters, page, limit: 20 });
+  const [search, setSearch] = useState(filters.q);
+  const setParamRef = useRef(setParam);
+  setParamRef.current = setParam;
+  // Debounce typing into the URL (?q=), which drives the request.
+  useEffect(() => {
+    if (search.trim() === filters.q) return;
+    const timer = setTimeout(() => setParamRef.current('q', search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search, filters.q]);
 
   function setParam(key: string, value: string | number) {
     const next = new URLSearchParams(params.toString());
@@ -122,46 +132,29 @@ function FindingsView() {
         </Card>
       )}
 
-      <div role="tablist" aria-label="Status" className="mb-4 flex gap-1 overflow-x-auto border-b border-ink-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {STATUS_TABS.map((tab) => {
-          const active = filters.status === tab.value;
-          return (
-            <button
-              key={tab.label}
-              role="tab"
-              aria-selected={active}
-              onClick={() => setParam('status', tab.value)}
-              className={cn(
-                '-mb-px whitespace-nowrap border-b-2 px-3 pb-2.5 text-sm font-semibold transition-colors',
-                active ? 'border-brand-600 text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-800',
-                tab.value === 'PENDING' && !active && 'text-amber-700',
-              )}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <Tabs label="Finding status" value={filters.status} onChange={(v) => setParam('status', v)} tabs={STATUS_TABS.map((t) => ({ value: t.value, label: t.label, attention: t.value === 'PENDING' }))} />
 
       <Card>
-        <div className="grid grid-cols-1 gap-2 border-b border-ink-100 px-5 py-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 border-b border-ink-100 px-5 py-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SearchInput
+            label="Search findings"
+            placeholder="Search title, asset or description"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           {filterSelect('target_id', 'Target', (targets.data ?? []).map((t) => [t.id, t.name]))}
           {filterSelect('category', 'Category', FINDING_CATEGORIES.map((c) => [c, CATEGORY_LABEL[c]]))}
           {filterSelect('source', 'Source', FINDING_SOURCES.map((s) => [s, SOURCE_LABEL[s]]))}
         </div>
-        {findings.loading && !findings.data && (
-          <div className="px-5">
-            <Spinner />
-          </div>
-        )}
+        {findings.loading && !findings.data && <SkeletonRows rows={5} label="Loading findings" />}
         {findings.error && (
           <CardBody className="pt-5">
             <Alert kind="error">{findings.error}</Alert>
           </CardBody>
         )}
         {findings.data?.length === 0 && (
-          <Empty title={filters.status === 'PENDING' ? 'Nothing waiting for verification' : 'No findings match these filters'}>
-            Run a full assessment from a target page and its scans turn into findings here.
+          <Empty title={filters.q ? `No findings match "${filters.q}"` : filters.status === 'PENDING' ? 'Nothing waiting for verification' : 'No findings match these filters'}>
+            {filters.q ? 'Try fewer words, or clear the other filters.' : 'Run a full assessment from a target page and its scans turn into findings here.'}
           </Empty>
         )}
         {findings.data && findings.data.length > 0 && (

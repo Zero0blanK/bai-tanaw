@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/shared/auth-provider';
+import { ConfirmProvider } from '@/components/ui/confirm';
+import { ToastProvider } from '@/components/ui/toast';
 import './globals.css';
 
 // Self-hosted at build time by next/font: no request to Google from the browser.
@@ -18,7 +20,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${bricolage.variable} ${hanken.variable}`}>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ConfirmProvider>
+        </ToastProvider>
       </body>
     </html>
   );

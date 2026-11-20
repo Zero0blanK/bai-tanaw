@@ -36,3 +36,17 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
     </div>
   );
 }
+
+/** Placeholder rows while a list loads, so the layout doesn't jump when data arrives. */
+export function SkeletonRows({ rows = 4, label = 'Loading…' }: { rows?: number; label?: string }) {
+  return (
+    <div role="status" aria-label={label} className="divide-y divide-ink-100">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex items-center gap-4 px-5 py-4">
+          <div className="h-3.5 flex-1 animate-pulse rounded bg-ink-100" style={{ maxWidth: `${60 - i * 7}%` }} />
+          <div className="h-3.5 w-16 animate-pulse rounded bg-ink-100" />
+        </div>
+      ))}
+    </div>
+  );
+}

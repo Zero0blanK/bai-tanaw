@@ -5,6 +5,8 @@ import { Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Alert, Empty } from '@/components/ui/feedback';
 import { Field, Input, Select } from '@/components/ui/form';
@@ -65,6 +67,8 @@ export function ScopeRules({ targetId, rules, canEdit, onChange }: { targetId: s
   const [assetType, setAssetType] = useState<ScopeAssetType>('HOST');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const confirm = useConfirm();
+  const toast = useToast();
 
   async function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,6 +89,7 @@ export function ScopeRules({ targetId, rules, canEdit, onChange }: { targetId: s
     try {
       await api(`/targets/${targetId}/scope`, { method: 'POST', body: parsed.data });
       formEl.reset();
+      toast({ title: 'Scope rule added', body: `${parsed.data.in_scope ? 'In scope' : 'Out of scope'}: ${parsed.data.value}` });
       onChange();
     } catch (e) {
       setError(errorMessage(e));
@@ -94,9 +99,16 @@ export function ScopeRules({ targetId, rules, canEdit, onChange }: { targetId: s
   }
 
   async function remove(rule: ScopeRule) {
-    if (!window.confirm(`Delete the ${humanize(rule.asset_type)} rule "${rule.value}"?`)) return;
+    const ok = await confirm({
+      title: 'Delete this scope rule?',
+      body: `The ${humanize(rule.asset_type).toLowerCase()} rule "${rule.value}" stops applying to new scans right away. The deletion is recorded in the audit log.`,
+      confirmLabel: 'Delete rule',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await api(`/targets/${targetId}/scope/${rule.id}`, { method: 'DELETE' });
+      toast({ title: 'Scope rule deleted' });
       onChange();
     } catch (e) {
       setError(errorMessage(e));

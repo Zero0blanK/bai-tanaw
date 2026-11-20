@@ -34,6 +34,28 @@
 
   --font-sans: var(--font-hanken), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: var(--font-bricolage), var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+
+  /* Semantic colours: one meaning each, used the same way everywhere. */
+  --color-success-600: #0f766e; /* same as brand: fixed, healthy, done */
+  --color-warning-600: #b45309; /* waiting for a person */
+  --color-danger-600: #b91c1c; /* confirmed problems, destructive actions */
+
+  /* Radius by role: controls < surfaces < overlays. */
+  --radius-control: 0.5rem;
+  --radius-surface: 0.75rem;
+  --radius-overlay: 1rem;
+
+  /* Shadows only on things that float above the page (menus, dialogs, toasts). Surfaces stay flat. */
+  --shadow-overlay: 0 12px 32px -8px rgb(15 26 46 / 0.22), 0 2px 6px rgb(15 26 46 / 0.08);
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /* Layout */
+  --spacing-sidebar: 16rem;
+  --spacing-sidebar-collapsed: 4.5rem;
+  --spacing-topbar: 3.75rem;
 }
 
 html,
