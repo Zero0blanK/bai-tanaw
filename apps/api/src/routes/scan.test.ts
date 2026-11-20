@@ -116,6 +116,61 @@ describe.skipIf(!hasTestDb)('scans, jobs and imports', () => {
     });
   });
 
+  describe('POST /targets/:id/scans/all', () => {
+    it('queues every tool as one run with a shared batch id', async () => {
+      const id = await target();
+      const res = await as(request(app).post(`/api/targets/${id}/scans/all`)).send({});
+      expect(res.status).toBe(202);
+      expect(res.body.data.skipped).toEqual([]);
+      const runs = res.body.data.runs as Array<{ scan: { tool: string; params: Record<string, string> }; job: { type: string } }>;
+      expect(runs.map((r) => r.scan.tool)).toEqual(['HTTP_CHECK', 'DNS', 'OPENAPI', 'NMAP', 'ZAP']);
+      expect(new Set(runs.map((r) => r.scan.params.batch_id)).size).toBe(1);
+      expect(runs.find((r) => r.scan.tool === 'NMAP')?.scan.params.ports).toBe('80,443');
+      expect(enqueue).toHaveBeenCalledTimes(5);
+      expect(await prisma.scan.count({ where: { target_id: id } })).toBe(5);
+    });
+
+    it("adds the target's own port to Nmap and keeps only ports the scope allows", async () => {
+      const id = await target('http://localhost:8787', [{ asset_type: 'PORT_RANGE', value: '8787', in_scope: true }]);
+      const res = await as(request(app).post(`/api/targets/${id}/scans/all`)).send({});
+      expect(res.status).toBe(202);
+      const nmap = res.body.data.runs.find((r: { scan: { tool: string } }) => r.scan.tool === 'NMAP');
+      expect(nmap.scan.params).toMatchObject({ host: 'localhost', ports: '8787' });
+    });
+
+    it('skips (and audits) a tool whose requests are out of scope, and still runs the rest', async () => {
+      const id = await target('https://bayawjobs.riomar.dev', [
+        { asset_type: 'URL', value: 'https://bayawjobs.riomar.dev/api/docs', in_scope: false },
+      ]);
+      const res = await as(request(app).post(`/api/targets/${id}/scans/all`)).send({});
+      expect(res.status).toBe(202);
+      expect(res.body.data.skipped).toEqual([{ tool: 'OPENAPI', reason: expect.any(String) }]);
+      expect(res.body.data.runs).toHaveLength(4);
+      const block = await prisma.auditLog.findFirstOrThrow({ where: { action: 'scope_blocked' } });
+      expect(block.metadata).toMatchObject({ tool: 'OPENAPI', batch_id: res.body.data.batch_id });
+    });
+
+    it('summarizes the latest run for the target page', async () => {
+      const id = await target();
+      const empty = await as(request(app).get(`/api/targets/${id}/assessment`));
+      expect(empty.body.data).toMatchObject({ batch_id: null, scans: [], ai: [] });
+
+      const run = await as(request(app).post(`/api/targets/${id}/scans/all`)).send({});
+      const res = await as(request(app).get(`/api/targets/${id}/assessment`));
+      expect(res.status).toBe(200);
+      expect(res.body.data.batch_id).toBe(run.body.data.batch_id);
+      expect(res.body.data.scans.map((s: { tool: string }) => s.tool)).toEqual(['HTTP_CHECK', 'DNS', 'OPENAPI', 'NMAP', 'ZAP']);
+      expect(res.body.data.scans[0]).toMatchObject({ status: 'QUEUED', results: 0, findings: 0 });
+    });
+
+    it('viewers cannot run it', async () => {
+      const id = await target();
+      const viewer = await createUser('VIEWER');
+      const vt = (await login(app, viewer.email)).token;
+      expect((await as(request(app).post(`/api/targets/${id}/scans/all`), vt).send({})).status).toBe(403);
+    });
+  });
+
   describe('imports', () => {
     it('imports an in-scope Nmap report, stores the raw file and paginates results', async () => {
       const id = await target('http://localhost:8787');
@@ -138,6 +193,8 @@ describe.skipIf(!hasTestDb)('scans, jobs and imports', () => {
       expect(raw.headers['content-disposition']).toMatch(/attachment/);
       expect(raw.text).toContain('<nmaprun');
       expect(await prisma.auditLog.count({ where: { action: 'report_imported' } })).toBe(1);
+      // Port 8787 is the target's own port, so the rules raise nothing; no AI key, so no AI job either.
+      expect(res.body.data).toMatchObject({ findings_created: 0, ai: { queued: false } });
     });
 
     it('rejects the whole report when any host is out of scope', async () => {
@@ -156,6 +213,13 @@ describe.skipIf(!hasTestDb)('scans, jobs and imports', () => {
       const results = await prisma.scanResult.findMany({ where: { scan_id: res.body.data.scan.id } });
       expect(results).toHaveLength(2);
       expect(JSON.stringify(results)).not.toContain('eyJhbGci');
+
+      // Low and Medium alerts become PENDING tool findings with the alert as evidence; a re-import adds none.
+      expect(res.body.data.findings_created).toBe(2);
+      const findings = await prisma.finding.findMany({ where: { target_id: id }, include: { evidence: true } });
+      expect(findings.every((f) => f.source === 'TOOL' && f.status === 'PENDING' && f.evidence.length === 1)).toBe(true);
+      const again = await as(request(app).post(`/api/targets/${id}/imports/zap`)).attach('file', await sample('zap-local.json'), 'zap.json');
+      expect(again.body.data).toMatchObject({ findings_created: 0, duplicates: 2 });
     });
 
     it('rejects wrong formats, missing files and oversized files', async () => {

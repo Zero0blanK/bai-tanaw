@@ -252,6 +252,9 @@ model Finding {
   /// Only PATCH /api/findings/:id/verify changes this. AI and tools only ever create PENDING.
   status         FindingStatus   @default(PENDING)
   remediation    String?
+  /// "Same problem on the same asset" key from the tool rules (or "ai:<title>"), used so re-scans don't duplicate
+  /// open findings. Null for manual findings.
+  fingerprint    String?
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
 
@@ -262,6 +265,7 @@ model Finding {
   verification_logs VerificationLog[]
 
   @@index([target_id, status])
+  @@index([target_id, fingerprint])
   @@index([scan_id])
   @@map("findings")
 }

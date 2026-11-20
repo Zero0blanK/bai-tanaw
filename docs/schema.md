@@ -149,10 +149,11 @@ Indexes: `index (scan_id, type)`.
 | `wstg_id` | String | yes |  |  |
 | `status` | enum [FindingStatus](#enum-findingstatus) | no | `PENDING` | Only PATCH /api/findings/:id/verify changes this. AI and tools only ever create PENDING. |
 | `remediation` | String | yes |  |  |
+| `fingerprint` | String | yes |  | "Same problem on the same asset" key from the tool rules (or "ai:<title>"), used so re-scans don't duplicate\nopen findings. Null for manual findings. |
 | `created_at` | DateTime | no | now() |  |
 | `updated_at` | DateTime | no | auto (updated at) |  |
 
-Indexes: `index (target_id, status)`, `index (scan_id)`.
+Indexes: `index (target_id, status)`, `index (target_id, fingerprint)`, `index (scan_id)`.
 
 ### evidence
 

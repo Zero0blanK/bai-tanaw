@@ -1,27 +1,35 @@
+import { randomUUID } from 'node:crypto';
 import type { ScanResultType } from '@prisma/client';
 import {
+  checkScope,
+  expandPortSpec,
   isSafeNmapHost,
   isSafeNmapPorts,
   MAX_NMAP_PORTS,
   normalizeHost,
   parseHttpUrl,
+  RUNNABLE_TOOLS,
   scopeRequestsForScan,
   TOOL_JOB_TYPE,
   type ParsedReport,
+  type RunAllScansInput,
+  type RunnableTool,
   type ScanParams,
   type StartScanInput,
 } from '@tanaw/shared';
 import { parseNmapXml, parseZapJson, storageKeys } from '@tanaw/shared/node';
 import { env } from '../config/env.js';
 import { storage } from '../config/storage.js';
+import { createToolFindings, findingRepository } from '../repositories/finding.repository.js';
 import { jobRepository } from '../repositories/job.repository.js';
 import { scanRepository } from '../repositories/scan.repository.js';
 import { targetRepository } from '../repositories/target.repository.js';
 import { withTransaction } from '../repositories/transaction.js';
-import { BadRequestError, NotFoundError } from '../utils/errors.js';
+import { AuthorizationError, BadRequestError, NotFoundError, ServiceUnavailableError } from '../utils/errors.js';
+import { aiService } from './ai.service.js';
 import { auditService, type Actor } from './audit.service.js';
 import { jobService } from './job.service.js';
-import { scopeService } from './scope.service.js';
+import { SCOPE_MESSAGES, scopeService } from './scope.service.js';
 import { TARGET_MESSAGES } from './target.service.js';
 
 export type ImportTool = 'NMAP' | 'ZAP';
@@ -52,6 +60,24 @@ function buildParams(tool: StartScanInput['tool'], input: StartScanInput, baseUr
       return { host, ports };
     }
   }
+}
+
+/**
+ * Nmap ports for a full run: the defaults plus the target's own port, keeping only ports the scope allows. A full
+ * run shouldn't fail just because the default 80/443 sit outside a target that lives on :8787.
+ */
+function fullRunPorts(target: Parameters<typeof checkScope>[0], host: string, requested: string | undefined): string | null {
+  const base = parseHttpUrl(target.base_url);
+  const wanted = requested ?? [env.NMAP_DEFAULT_PORTS, base?.port || (base?.protocol === 'https:' ? '443' : '80')].join(',');
+  const ports = expandPortSpec(wanted.replace(/\s+/g, ''));
+  if (!ports) return null;
+  const allowed = [...new Set(ports)].filter((port) => checkScope(target, { host, port }, env.ALLOWED_HOSTS).ok);
+  return allowed.length > 0 ? allowed.sort((a, b) => a - b).join(',') : null;
+}
+
+export interface SkippedTool {
+  tool: RunnableTool;
+  reason: string;
 }
 
 export const scanService = {
@@ -85,6 +111,81 @@ export const scanService = {
   },
 
   /**
+   * Runs every tool (HTTP check, DNS, OpenAPI, Nmap, ZAP) against the target in one go. Each tool is scope-checked
+   * like a single scan; a tool whose requests fall outside scope is skipped (and audited), the rest still run.
+   * All scans share a `batch_id` in their params so the UI can show the run as one assessment.
+   */
+  async startAll(targetId: string, input: RunAllScansInput, actor: Actor) {
+    const target = await loadTarget(targetId);
+    await scopeService.assertWithinTestWindow(target, actor);
+    const base = parseHttpUrl(target.base_url);
+    if (!base) throw new BadRequestError('Target base URL is invalid');
+
+    const batchId = randomUUID();
+    const planned: Array<{ tool: RunnableTool; params: ScanParams }> = [];
+    const skipped: SkippedTool[] = [];
+    for (const tool of RUNNABLE_TOOLS) {
+      try {
+        let params: ScanParams;
+        if (tool === 'NMAP') {
+          const host = normalizeHost(base.hostname);
+          const ports = fullRunPorts(target, host, input.ports);
+          if (!ports) throw new AuthorizationError('no port the scope allows');
+          params = buildParams('NMAP', { tool, host, ports }, target.base_url);
+        } else {
+          params = buildParams(tool, { tool, url: tool === 'HTTP_CHECK' || tool === 'ZAP' ? input.url : undefined }, target.base_url);
+        }
+        const requests = scopeRequestsForScan(tool, params);
+        if (!requests) throw new BadRequestError('invalid parameters');
+        const blocked = requests.map((r) => checkScope(target, r, env.ALLOWED_HOSTS)).find((d) => !d.ok);
+        if (blocked && !blocked.ok) throw new AuthorizationError(blocked.reason);
+        planned.push({ tool, params: { ...params, batch_id: batchId } });
+      } catch (error) {
+        const reason = (error as Error).message;
+        skipped.push({ tool, reason });
+        await auditService.log('scope_blocked', actor, { target_id: target.id, metadata: { context: 'scan', batch_id: batchId, tool, reason } });
+      }
+    }
+    if (planned.length === 0) {
+      throw new AuthorizationError(`${SCOPE_MESSAGES.OUT_OF_SCOPE}: no tool can run (${skipped.map((s) => `${s.tool}: ${s.reason}`).join('; ')})`);
+    }
+
+    const created = await withTransaction(async (tx) => {
+      const rows = [];
+      for (const { tool, params } of planned) {
+        const scan = await scanRepository.create(
+          { target_id: target.id, tool, source: 'WORKER', params: { ...params }, started_by: actor.id ?? null },
+          tx,
+        );
+        const job = await jobRepository.create({ type: TOOL_JOB_TYPE[tool], ref_id: scan.id, created_by: actor.id ?? null }, tx);
+        rows.push({ scan, job });
+      }
+      return rows;
+    });
+
+    const runs = [];
+    let queuedCount = 0;
+    for (const { scan, job } of created) {
+      try {
+        const queued = await jobService.dispatch(job, (reason) =>
+          scanRepository.update(scan.id, { status: 'FAILED', error: reason, finished_at: new Date() }),
+        );
+        queuedCount += 1;
+        runs.push({ scan, job: queued });
+      } catch {
+        runs.push({ scan: { ...scan, status: 'FAILED' as const }, job: { ...job, status: 'FAILED' as const } });
+      }
+    }
+    if (queuedCount === 0) throw new ServiceUnavailableError('Queue unavailable (is Redis running?)');
+
+    await auditService.log('scan_started', actor, {
+      target_id: target.id,
+      metadata: { batch_id: batchId, tools: planned.map((p) => p.tool), skipped: skipped.map((s) => s.tool) },
+    });
+    return { batch_id: batchId, runs, skipped };
+  },
+
+  /**
    * Imports an Nmap XML or ZAP JSON report. Every host (and port) it mentions must be in scope,
    * or nothing is stored. Imports don't touch the target, so the test window doesn't apply.
    */
@@ -108,7 +209,7 @@ export const scanService = {
 
     const filename = file.originalname.replace(/[^\w.-]+/g, '_').slice(0, 200);
     const now = new Date();
-    const scan = await withTransaction(async (tx) => {
+    const { scan, findings } = await withTransaction(async (tx) => {
       const scan = await scanRepository.create(
         {
           target_id: target.id,
@@ -122,8 +223,14 @@ export const scanService = {
         },
         tx,
       );
-      await scanRepository.addResults(scan.id, report.results, tx);
-      return scan;
+      const rows = await scanRepository.addResults(scan.id, report.results, tx);
+      // Imported reports become findings the same way tool runs do.
+      const findings = await createToolFindings(
+        tx,
+        { id: scan.id, tool, target_id: target.id, target_base_url: target.base_url, actor_id: actor.id ?? null },
+        rows,
+      );
+      return { scan, findings };
     });
 
     const key = await storage.put(storageKeys.scanRaw(target.id, scan.id, tool === 'NMAP' ? 'xml' : 'json'), file.buffer);
@@ -132,7 +239,38 @@ export const scanService = {
       target_id: target.id,
       metadata: { scan_id: scan.id, tool, filename, results: report.results.length },
     });
-    return { scan: updated, results: report.results.length };
+    const ai = await aiService.autoInterpret({ id: scan.id, tool, target_id: target.id, results: report.results.length }, actor);
+    return { scan: updated, results: report.results.length, findings_created: findings.created, duplicates: findings.duplicates, ai };
+  },
+
+  /**
+   * The target's latest full run ("Run full assessment"): each tool's scan, the automatic AI interpretations of
+   * those scans, and how many findings wait for an assessor. Drives the assessment track on the target page.
+   */
+  async latestAssessment(targetId: string) {
+    await loadTarget(targetId);
+    const scans = await scanRepository.listForTarget(targetId);
+    const batchOf = (s: (typeof scans)[number]) => (s.params as ScanParams | null)?.batch_id ?? null;
+    const latest = scans.find((s) => batchOf(s));
+    const batchId = latest ? batchOf(latest) : null;
+    const batch = batchId ? scans.filter((s) => batchOf(s) === batchId).reverse() : [];
+    const jobs = await jobRepository.listInterpretations(batch.map((s) => s.id));
+    const findings = await findingRepository.countByStatusForTarget(targetId);
+    return {
+      batch_id: batchId,
+      started_at: batch[0]?.created_at ?? null,
+      scans: batch.map((s) => ({
+        id: s.id,
+        tool: s.tool,
+        status: s.status,
+        error: s.error,
+        results: s._count.results,
+        findings: s._count.findings,
+        finished_at: s.finished_at,
+      })),
+      ai: jobs.map((j) => ({ id: j.id, scan_id: j.ref_id, status: j.status, failed_reason: j.failed_reason, result: j.result })),
+      findings,
+    };
   },
 
   async listForTarget(targetId: string) {

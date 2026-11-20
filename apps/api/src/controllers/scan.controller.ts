@@ -1,4 +1,4 @@
-import { ScanResultsQuery, StartScanBody } from '@tanaw/shared';
+import { ScanResultsQuery, RunAllScansBody, StartScanBody } from '@tanaw/shared';
 import type { Request, Response } from 'express';
 import { jobService } from '../services/job.service.js';
 import { scanService, type ImportTool } from '../services/scan.service.js';
@@ -19,6 +19,17 @@ export const scanController = {
   async start(req: Request, res: Response) {
     const { id } = IdParams.parse(req.params);
     accepted(res, await scanService.start(id, StartScanBody.parse(req.body), currentActor(req)), 'Scan queued');
+  },
+
+  async startAll(req: Request, res: Response) {
+    const { id } = IdParams.parse(req.params);
+    const out = await scanService.startAll(id, RunAllScansBody.parse(req.body ?? {}), currentActor(req));
+    accepted(res, out, `${out.runs.length} tools queued${out.skipped.length ? `, ${out.skipped.length} skipped` : ''}`);
+  },
+
+  async latestAssessment(req: Request, res: Response) {
+    const { id } = IdParams.parse(req.params);
+    ok(res, await scanService.latestAssessment(id));
   },
 
   async listForTarget(req: Request, res: Response) {

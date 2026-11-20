@@ -21,10 +21,12 @@ export const scanRepository = {
     return tx.scan.create({ data });
   },
 
+  /** Inserts results and returns them with their ids (the tool-finding rules link evidence to them). */
   addResults(scan_id: string, results: ScanResultInput[], tx: Tx = prisma) {
-    if (results.length === 0) return Promise.resolve({ count: 0 });
-    return tx.scanResult.createMany({
+    if (results.length === 0) return Promise.resolve([]);
+    return tx.scanResult.createManyAndReturn({
       data: results.map((r) => ({ scan_id, type: r.type, data: r.data as Prisma.InputJsonValue })),
+      select: { id: true, type: true, data: true },
     });
   },
 

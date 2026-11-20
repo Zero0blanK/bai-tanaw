@@ -9,6 +9,12 @@ export const jobRepository = {
     return tx.job.create({ data });
   },
 
+  /** AI interpretations of the given scans, newest first. */
+  listInterpretations(scanIds: string[]) {
+    if (scanIds.length === 0) return Promise.resolve([]);
+    return prisma.job.findMany({ where: { type: 'INTERPRET', ref_id: { in: scanIds } }, orderBy: { created_at: 'desc' } });
+  },
+
   findById(id: string) {
     return prisma.job.findUnique({ where: { id } });
   },

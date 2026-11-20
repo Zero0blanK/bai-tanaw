@@ -1,5 +1,7 @@
 import type { EvidenceType, FindingCategory, FindingSource, FindingStatus, Prisma } from '@prisma/client';
 import { prisma, type Tx } from '../config/prisma.js';
+import { DEDUP_STATUSES, deriveToolFindings, type RuleResult } from '@tanaw/shared';
+import { redact } from '@tanaw/shared/node';
 
 const userSelect = { select: { id: true, name: true, email: true } } as const;
 
@@ -38,6 +40,11 @@ export const findingRepository = {
 
   create(data: Prisma.FindingUncheckedCreateInput) {
     return prisma.finding.create({ data });
+  },
+
+  async countByStatusForTarget(target_id: string): Promise<Record<string, number>> {
+    const rows = await prisma.finding.groupBy({ by: ['status'], where: { target_id }, _count: { _all: true }, orderBy: { status: 'asc' } });
+    return Object.fromEntries(rows.map((r) => [r.status, (r._count as { _all: number })._all]));
   },
 
   findById(id: string) {
@@ -137,3 +144,51 @@ export const findingRepository = {
     });
   },
 };
+
+/**
+ * Creates PENDING tool findings for an imported report (the worker does the same for tool runs, see
+ * apps/worker/src/lib/toolFindings.ts). Skips problems already recorded for the target (same fingerprint).
+ */
+export async function createToolFindings(
+  tx: Tx,
+  scan: { id: string; tool: string; target_id: string; target_base_url: string; actor_id: string | null },
+  results: RuleResult[],
+): Promise<{ created: number; duplicates: number; finding_ids: string[] }> {
+  const candidates = deriveToolFindings({ tool: scan.tool, targetBaseUrl: scan.target_base_url, results });
+  if (candidates.length === 0) return { created: 0, duplicates: 0, finding_ids: [] };
+  const existing = await tx.finding.findMany({
+    where: { target_id: scan.target_id, fingerprint: { in: candidates.map((c) => c.fingerprint) }, status: { in: [...DEDUP_STATUSES] } },
+    select: { fingerprint: true },
+  });
+  const known = new Set(existing.map((f) => f.fingerprint));
+  const byId = new Map(results.map((r) => [r.id, r]));
+  const ids: string[] = [];
+  for (const c of candidates) {
+    if (known.has(c.fingerprint)) continue;
+    const finding = await tx.finding.create({
+      data: {
+        target_id: scan.target_id,
+        scan_id: scan.id,
+        title: c.title.slice(0, 300),
+        category: c.category,
+        description: c.description,
+        affected_asset: c.affected_asset.slice(0, 500),
+        source: 'TOOL',
+        status: 'PENDING',
+        ai_severity: c.severity,
+        owasp_top10: c.owasp_top10,
+        wstg_id: c.wstg_id,
+        fingerprint: c.fingerprint,
+      },
+    });
+    ids.push(finding.id);
+    const evidence = c.result_ids.flatMap((id) => {
+      const result = byId.get(id);
+      return result
+        ? [{ finding_id: finding.id, type: 'TOOL_OUTPUT' as const, scan_result_id: id, content: redact(JSON.stringify(result.data)).slice(0, 4000), created_by: scan.actor_id }]
+        : [];
+    });
+    if (evidence.length > 0) await tx.evidence.createMany({ data: evidence });
+  }
+  return { created: ids.length, duplicates: candidates.length - ids.length, finding_ids: ids };
+}
