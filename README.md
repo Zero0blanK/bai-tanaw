@@ -5,7 +5,7 @@ built for the CS24 final project. It assesses an **authorized** web application 
 tool results, uses AI to explain results and suggest fixes, and keeps a human assessor in charge of what counts as a
 confirmed vulnerability.
 
-> Status: backend complete (Phases 1-6). Next: the web UI (Phase 7). The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
+> Status: backend and web UI complete (Phases 1-7). Next: docs and the acceptance suite (Phase 8). The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
 
 ## Quick start (infrastructure)
 
