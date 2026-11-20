@@ -18,3 +18,12 @@ body {
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
 }
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+  body {
+    @apply bg-white;
+  }
+}

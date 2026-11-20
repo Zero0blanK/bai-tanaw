@@ -1,16 +1,26 @@
 'use client';
 
 import { LoginBody } from '@tanaw/shared';
-import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useAuth } from '@/components/shared/auth-provider';
+import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/feedback';
+import { Field, Input } from '@/components/ui/form';
+import { errorMessage } from '@/lib/api';
 
-// Placeholder: validates with the shared schema. Phase 7 wires it to POST /api/auth/login.
 export function LoginForm() {
+  const { login, user, loading } = useAuth();
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (!loading && user) router.replace('/dashboard');
+  }, [loading, user, router]);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice(null);
     const form = new FormData(event.currentTarget);
     const parsed = LoginBody.safeParse({ email: form.get('email'), password: form.get('password') });
     if (!parsed.success) {
@@ -18,49 +28,29 @@ export function LoginForm() {
       return;
     }
     setError(null);
-    setNotice('Sign-in is not connected yet.');
+    setSubmitting(true);
+    try {
+      await login(parsed.data.email, parsed.data.password);
+      router.replace('/dashboard');
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="username"
-          required
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-      </div>
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-      </div>
-      {error && (
-        <p role="alert" className="text-sm text-red-600">
-          {error}
-        </p>
-      )}
-      {notice && <p className="text-sm text-slate-600">{notice}</p>}
-      <button
-        type="submit"
-        className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-100"
-      >
+      <Field label="Email" htmlFor="email">
+        <Input id="email" name="email" type="email" autoComplete="username" required />
+      </Field>
+      <Field label="Password" htmlFor="password">
+        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+      </Field>
+      {error && <Alert kind="error">{error}</Alert>}
+      <Button type="submit" className="w-full" loading={submitting}>
         Sign in
-      </button>
+      </Button>
     </form>
   );
 }
