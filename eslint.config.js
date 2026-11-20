@@ -10,6 +10,15 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Plain Node scripts (scripts/*.mjs, apps/*/scripts/*.mjs): declare the Node globals they use.
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: Object.fromEntries(
+        ['process', 'console', 'fetch', 'FormData', 'Blob', 'URL', 'URLSearchParams', 'setTimeout', 'clearTimeout', 'Buffer'].map((g) => [g, 'readonly']),
+      ),
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
