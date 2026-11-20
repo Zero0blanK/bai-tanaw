@@ -16,6 +16,10 @@ export const InterpretFindingSchema = z.object({
   suggested_severity: z.enum(SEVERITIES),
   owasp_top10: z.string().max(80),
   wstg_id: z.string().max(40),
+  /** A CVSS v3.1 base vector, or "" when the output doesn't support one. Tanaw re-scores it and drops invalid ones. */
+  cvss_vector: z.string().max(80).default(''),
+  /** A short, concrete fix for this application. Stored as a suggestion only. */
+  remediation: z.string().max(2000).default(''),
 });
 export type InterpretFinding = z.infer<typeof InterpretFindingSchema>;
 
@@ -43,6 +47,8 @@ export const InterpretJsonSchema = {
           'suggested_severity',
           'owasp_top10',
           'wstg_id',
+          'cvss_vector',
+          'remediation',
         ],
         properties: {
           title: { type: 'string' },
@@ -53,6 +59,8 @@ export const InterpretJsonSchema = {
           suggested_severity: { type: 'string', enum: [...SEVERITIES] },
           owasp_top10: { type: 'string' },
           wstg_id: { type: 'string' },
+          cvss_vector: { type: 'string' },
+          remediation: { type: 'string' },
         },
       },
     },

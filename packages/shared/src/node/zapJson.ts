@@ -2,6 +2,7 @@
 // /OTHER/core/other/jsonreport/ API) into ALERT results. Evidence is redacted before it is stored.
 
 import type { ParsedReport } from '../schemas/scanResults.js';
+import { extractCveIds } from '../findingRules.js';
 import { redactNullable } from './redact.js';
 import { asArray, truncate } from './util.js';
 
@@ -22,6 +23,8 @@ interface ZapAlert {
   riskdesc?: string;
   desc?: string;
   solution?: string;
+  reference?: string;
+  otherinfo?: string;
   cweid?: string;
   wascid?: string;
   count?: string;
@@ -91,6 +94,10 @@ export function parseZapJson(text: string): ParsedReport {
           confidence: alert.confidence ?? null,
           description: truncate(stripHtml(alert.desc), 500),
           solution: truncate(stripHtml(alert.solution), 500),
+          reference: truncate(stripHtml(alert.reference), 600),
+          other_info: redactNullable(truncate(stripHtml(alert.otherinfo), 600)),
+          // Only CVEs ZAP itself names (e.g. "Vulnerable JS Library" alerts list them in other info / references).
+          cve_ids: extractCveIds(alert.desc, alert.solution, alert.reference, alert.otherinfo),
           cwe_id: alert.cweid ?? null,
           wasc_id: alert.wascid ?? null,
           count: alert.count ? Number(alert.count) || instances.length : instances.length,
