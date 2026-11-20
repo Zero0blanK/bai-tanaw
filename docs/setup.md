@@ -36,7 +36,9 @@ npm run dev:worker   # no port; logs "Worker ready"
 npm run dev:web      # http://localhost:3000
 ```
 
-Open <http://localhost:3000>, sign in as the seeded admin, and **change that password** on the Account page.
+Open <http://localhost:3000>, sign in as the seeded admin, and **change that password** on the Account page. For the
+AI features, open **Settings**, choose the provider (OpenRouter by default), paste the API key and save. It is encrypted
+before it is stored and never shown again; it does not go in `.env`.
 
 To run OWASP ZAP scans, start its container too: `docker compose up -d zap` (a large image; first pull takes a while).
 
@@ -83,10 +85,8 @@ logs, screenshots or chat.
 | `ZAP_API_KEY` | worker, compose | for ZAP | **secret** | ZAP API key, shared with the container |
 | `ZAP_ACTIVE_SCAN_ENABLED` | worker | no | `false` | Attacking scans. **Keep `false`** unless the instructor approves in writing |
 | `ZAP_SPIDER_MAX_MINUTES` | worker | no | `5` | Upper bound for one spider run |
-| `AI_PROVIDER` | api, worker | no | `openai` | `openai` or `ollama` |
-| `OPENAI_API_KEY` | api, worker | for AI | **secret** | Without it, AI endpoints answer `503` |
-| `OPENAI_MODEL` | worker | no | `gpt-4.1-mini` | Must support Structured Outputs |
-| `OLLAMA_URL` / `OLLAMA_MODEL` | worker | for Ollama | `http://localhost:11434` / `llama3.1:8b` | Local model alternative |
+| `SETTINGS_ENCRYPTION_KEY` | api, worker | **yes** | random 32+ chars (`npm run env:init`) | Master key that encrypts secrets saved in Settings (the AI API key). If it changes, re-enter the key in Settings (**secret**) |
+| `OLLAMA_URL` | worker | for Ollama | `http://localhost:11434` | Where the worker reaches Ollama when Settings picks it |
 | `AI_DAILY_LIMIT` | api | no | `20` | AI jobs per user per day (resets at midnight Philippine time) |
 | `AI_MAX_INPUT_CHARS` | worker | no | `12000` | Cap on tool output sent in one prompt |
 | `STORAGE_DRIVER` | none yet | no | `local` | Only local storage exists |
@@ -119,10 +119,11 @@ After changing `apps/api/prisma/schema.prisma`: `npm run db:migrate -- --name <c
 | Scans stay `Queued` | The worker isn't running (`npm run dev:worker`) or can't reach Redis. |
 | Nmap scan fails locally | Install Nmap or set `NMAP_BIN`; or run the worker in Docker. |
 | ZAP scan fails | `docker compose up -d zap`, and `ZAP_API_KEY` must match in both places. |
-| AI buttons answer `503` | No `OPENAI_API_KEY` (or set `AI_PROVIDER=ollama`). |
+| AI buttons answer `503` | No API key yet, or `SETTINGS_ENCRYPTION_KEY` changed since it was saved. An admin opens **Settings**, pastes the OpenRouter key and clicks **Test connection**. |
 | AI buttons answer `429` | Daily cap reached (`AI_DAILY_LIMIT`); resets at midnight Philippine time. |
 | Login page loops or CORS errors | `CORS_ORIGIN` must equal the web origin exactly, including the port. |
-| `docker compose` fails on `docker-credential-desktop` (Git Bash) | Run it from PowerShell, or add `C:\Program Files\Docker\Dockeresourcesin` to `PATH`. |
+| `docker compose` fails on `docker-credential-desktop` (Git Bash) | Run it from PowerShell, or add `C:\Program Files\Docker\Docker
+esourcesin` to `PATH`. |
 | Port 3000 already in use | Run the web with `npx next dev --port 3100` (in `apps/web`) and add `http://localhost:3100` to `CORS_ORIGIN`. |
 | `429` on login | Either 5 wrong passwords locked the account, or one IP made 20 attempts. Both clear after 15 minutes. |
 | `next build` can't find an export from `@tanaw/shared` | Build from the root (`npm run build`), which rebuilds the shared package first. |

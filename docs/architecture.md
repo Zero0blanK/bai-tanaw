@@ -17,7 +17,7 @@ flowchart LR
     WK -->|"Nmap (execFile)"| T["Target<br/>(allowlisted hosts only)"]
     WK -->|"ZAP API"| ZAP["ZAP daemon"] --> T
     WK -->|"HTTP / DNS / OpenAPI"| T
-    WK -->|"redacted prompt"| AI["OpenAI or Ollama"]
+    WK -->|"redacted prompt"| AI["OpenRouter, OpenAI or Ollama"]
     API --> FS[("storage/")]
     WK --> FS
 ```
@@ -120,13 +120,18 @@ Two features, both through `askJson()` in `apps/worker/src/ai/provider.ts`:
    `{summary, steps, code_example, references, confidence}`. Nothing changes until an assessor accepts or edits it.
 
 Every call: `redact()` → cap at `AI_MAX_INPUT_CHARS` → SHA-256 of what is sent → wrap in `<tool_output>` (with any such
-tags removed from the data) → OpenAI Structured Outputs (strict JSON schema) or Ollama → Zod validation → stored in
-`ai_analyses`. Prompts are in `apps/worker/src/ai/prompts/` (owned by the AI integration role).
+tags removed from the data) → OpenRouter or OpenAI Structured Outputs (strict JSON schema), or Ollama → Zod validation →
+stored in `ai_analyses`. Prompts are in `apps/worker/src/ai/prompts/` (owned by the AI integration role).
+
+The provider, model and API key are chosen by an admin on the Settings page, not in `.env`. The key is write-only: the
+API encrypts it with AES-256-GCM under a key derived by scrypt from `SETTINGS_ENCRYPTION_KEY` (fresh salt and IV per
+save, authenticated data bound to the setting) and stores only the ciphertext and the last 4 characters. The worker
+decrypts it per job. No endpoint returns it, and the audit log records only that it changed.
 
 | OWASP Top 10 for LLM Applications 2025 | Control in Tanaw |
 |---|---|
 | LLM01 Prompt injection | Untrusted data wrapped in `<tool_output>`, tags stripped from it, prompts say to ignore instructions inside; the AI has no tools and can only return JSON |
-| LLM02 Sensitive information disclosure | `redact()` removes JWTs, auth/cookie headers, passwords, API keys, emails, PH phone numbers before sending |
+| LLM02 Sensitive information disclosure | `redact()` removes JWTs, auth/cookie headers, passwords, API keys, emails, PH phone numbers before sending; the provider key itself is stored encrypted and never returned |
 | LLM05 Improper output handling | Strict JSON schema + Zod; output stored as data, rendered as text, never executed |
 | LLM06 Excessive agency | The AI can't change anything: findings stay PENDING, fixes stay drafts |
 | LLM09 Misinformation | Human verification is required; the report only shows confirmed findings |

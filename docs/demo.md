@@ -16,13 +16,13 @@ npm run env:init
 ```
 
 `env:init` creates `.env` from `.env.example` and replaces the example secrets with random ones (JWT secrets, ZAP
-API key and, on a new `.env`, the first admin's password). It never prints them. Then open `.env` and check:
+API key, the settings encryption key and, on a new `.env`, the first admin's password). It never prints them. The AI
+provider key does **not** go in `.env`: you paste it into the app in step 2. Then open `.env` and check:
 
 | Variable | For the demo |
 |---|---|
 | `ASSESSMENT_ALLOWED_HOSTS` | Must contain `host.docker.internal` (the example already does) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | The first admin. Read the password from `.env` for the first sign-in |
-| `OPENAI_API_KEY` | The team key, for the AI steps. Without it the AI buttons answer `503`, which is also a valid demo point |
 | `WEB_PORT`, `CORS_ORIGIN` | Only if port 3000 is taken: e.g. `WEB_PORT=3100` and `CORS_ORIGIN=http://localhost:3100` |
 
 ## 2. Start Tanaw
@@ -41,6 +41,12 @@ build takes several minutes; the ZAP image alone is over 1 GB.
 
 Open <http://localhost:3000>, sign in as the admin, and go to **Account** to change the password. Under **Users**,
 create one ASSESSOR for the assessment and, if you want to show read-only access, one VIEWER.
+
+Then open **Settings**: keep the provider on OpenRouter, pick a model that supports structured outputs (default
+`openai/gpt-4.1-mini`), paste the team's OpenRouter key, **Save**, then **Test connection**. The key is encrypted on the
+server (AES-256-GCM, key derived with scrypt from `SETTINGS_ENCRYPTION_KEY`), only its last 4 characters are ever shown,
+and the audit log records that it changed but not the key. Without a key the AI buttons answer `503`, which is also a
+valid demo point (show it, then add the key).
 
 Check it is healthy:
 
@@ -129,4 +135,5 @@ with `SEED_ADMIN_*` from `.env`, so it only works while the admin still has that
 | Scans of `localhost:8787` fail to connect | Register the target as `http://host.docker.internal:8787`, not `localhost`. |
 | `This host is not on the assessment allowlist` for `host.docker.internal` | Add it to `ASSESSMENT_ALLOWED_HOSTS` in `.env`, then `docker compose up -d api worker`. |
 | ZAP scan fails right after start | ZAP needs about a minute; wait for `healthy` in `docker compose ps`. A changed `ZAP_API_KEY` needs `docker compose up -d zap worker`. |
+| AI buttons answer `503` after a `.env` change | `SETTINGS_ENCRYPTION_KEY` changed, so the stored key can't be decrypted. Paste it again in **Settings**. |
 | Sign-in works but every page bounces to login | `CORS_ORIGIN` must match the web address exactly, port included. |

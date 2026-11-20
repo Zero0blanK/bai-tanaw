@@ -87,6 +87,6 @@ These need a person and the real target:
 
 1. Full demo flow (AGENT.md §3, steps in [demo.md](demo.md)) against the local Bayaw Jobs (`wrangler dev`, registered as `http://host.docker.internal:8787`).
 2. One ZAP scan of the local Bayaw Jobs from the worker, with ALERT results (T4; the pipeline itself is verified).
-3. One real AI interpretation and remediation with the team key (X8); note tokens and cost.
+3. One real AI interpretation and remediation with the team's OpenRouter key saved in Settings (X8); note tokens and cost.
 4. Report exported to PDF from Chrome and checked page by page.
 5. Then, with the instructor's written approval, the same flow against the approved Bayaw Jobs environment.
