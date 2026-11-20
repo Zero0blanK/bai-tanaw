@@ -50,7 +50,7 @@ The UI is built (`apps/web`, AGENT.md §10). These tickets polish it for the dem
 | ID | Ticket | Size | Depends on | Done when |
 |---|---|---|---|---|
 | BE-2 | **Real ZAP run on Bayaw Jobs.** The ZAP pipeline already ran for real against Tanaw's own API (no alerts). Run one scan of the local Bayaw Jobs (`http://host.docker.internal:8787`, docs/demo.md). | S | – | ALERT results stored; the context kept the spider inside scope. |
-| BE-3 | **Real AI smoke test.** Save the team's OpenRouter key in Settings, then run interpret and remediate on a real scan; record tokens and cost per call from `ai_analyses`. | S | AI-1 | Both features produce valid output; cost per call noted for AI-6. |
+| BE-3 | **Real AI smoke test.** Interpretation is verified (automatic runs with the team's OpenRouter key, 2026-11-20). Still: run "Suggest fix" on a real finding; record tokens and cost per call from `ai_analyses`. | S | AI-1 | Both features produce valid output; cost per call noted for AI-6. |
 | BE-4 | **OpenAPI docs at `/api/docs`.** Describe every endpoint in AGENT.md §8 and serve it with Scalar. | M | – | Every route appears with its request and response shapes. |
 | BE-5 | **Backups.** Back up the database and `storage/` before the demo (commands in docs/demo.md §6). | S | – | A restore has been tried once. |
 | BE-6 | **CI.** Run type-check, lint, tests (with a Postgres service) and the Docker builds on every PR. | M | – | A PR shows all checks green. |

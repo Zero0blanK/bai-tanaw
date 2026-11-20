@@ -89,14 +89,14 @@ Sign in as the assessor. Each step names the page and what to point out.
 |---|---|---|---|
 | 1 | Define scope | **Targets → New**: name "Bayaw Jobs (local)", base URL `http://host.docker.internal:8787`, authorization note, test window covering today | `https://example.com` is refused with 403: the allowlist |
 | 2 | | Scope rules: in-scope `PORT_RANGE 8787`; out-of-scope `URL http://host.docker.internal:8787/api/admin` | Scope tester: `/api/admin/users` → blocked, `/api/jobs` → allowed |
-| 3 | Reconnaissance | Run **DNS** and **OpenAPI** | Endpoints list with `requires_auth` / `admin_route` |
-| 4 | Scanning | Run **Nmap** (ports `8787`) | `-sV -T3` only, service and version detected |
-| 5 | Security assessment | Run **HTTP check**, then **ZAP** on `http://host.docker.internal:8787/` | Missing headers, cookie flags, CORS probe; ZAP passive alerts (spider stays in scope, no active scan) |
-| 6 | AI analysis | Scan detail → **Interpret with AI** | New findings are PENDING with the "AI suggestion, not verified" badge; each cites the results it used |
+| 3 | Reconnaissance + scanning | Target page → **Run full assessment** | One click runs HTTP check, DNS, OpenAPI, Nmap (target port included) and ZAP within scope; the track fills step by step. Out-of-scope tools are skipped, not forced |
+| 4 | Security assessment | Watch **Findings** fill up | Each finished scan becomes "Tool rule" findings (missing headers, cookie flags, CORS, open ports, ZAP alerts), never duplicated on a re-run |
+| 5 | AI analysis | Nothing to click | The AI reads each finished scan on its own and adds what the rules missed, marked "AI suggestion, not verified" and citing its evidence |
+| 6 | | Scan detail | The AI status and token use per scan; **Re-run AI** exists for scans that finished before a key was saved |
 | 7 | Verification | Finding → add evidence (HTTP exchange or screenshot) → **Confirm** with a CVSS vector; **Reject** one with notes | Confirm needs severity, CVSS and evidence; the history keeps every decision |
 | 8 | Risk assessment | Finding → **Suggest fix** → accept the draft | The draft is never applied on its own; the assessor accepts or edits it |
 | 9 | Report | **Dashboard**, then **Report** → Print to PDF | Only CONFIRMED and FIXED findings, with evidence and remediation |
-| 10 | | Sign in as admin → **Audit log** | Scope blocks, scans, AI requests, verifications, report export |
+| 10 | | Sign in as admin → **Audit log** | Scope blocks, scans, AI requests (automatic ones marked `auto`), verifications, report export |
 
 Have a manual finding ready for the categories the tools can't judge (authentication and access control, e.g. a
 WSTG-ATHZ test done by hand with a test account). Use **Findings → New** and attach the HTTP exchange as evidence.

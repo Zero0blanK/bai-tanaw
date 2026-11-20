@@ -11,7 +11,8 @@ rules (§2) and the verification plan (§14). Each check is covered twice:
   negative cases the live run can't trigger cheaply (lockout, AI cap, token theft).
 
 Last live run: 2026-11-20 against the full Docker stack (`ACCEPTANCE_TARGET_URL=http://host.docker.internal:4000`,
-see [demo.md](demo.md)): **37 passed, 0 failed, 0 skipped**. The earlier dev-stack run skipped T3 (no Nmap on the host).
+see [demo.md](demo.md)): **39 passed, 0 failed, 0 skipped**, with a real AI provider (OpenRouter key saved in Settings). An AI job that the
+provider rejects with HTTP 429/5xx (e.g. a rate-limited free model) is reported as SKIP, not FAIL.
 
 | ID | Check | Live | Automated tests |
 |---|---|---|---|
@@ -43,6 +44,8 @@ see [demo.md](demo.md)): **37 passed, 0 failed, 0 skipped**. The earlier dev-sta
 | T1 | HTTP check runs through the worker and stores results | ✓ | `tools.test.ts`, `processJob.test.ts` |
 | T2 | DNS lookup completes | ✓ | `tools.test.ts` |
 | T3 | Nmap service detection (fixed safe arguments, validated input) | ✓ (needs Nmap) | `tools.test.ts`; verified in the worker image |
+| T6 | A finished scan becomes PENDING tool findings (rules, de-duplicated) and queues the AI automatically | ✓ | `findingRules.test.ts`, `processJob.test.ts`, `autoInterpret.test.ts`, `scan.test.ts` (imports) |
+| T7 | "Run full assessment" queues every tool as one run; out-of-scope tools are skipped and audited | ✓ | `scan.test.ts` |
 | T4 | ZAP spider + passive scan inside a scope context, only in-scope alerts kept, redacted | – | `tools.test.ts` (fake ZAP API). Real run 2026-11-20: ZAP 2.17 container via the worker against Tanaw's own API, completed with no alerts (expected for that API). **Still to do: a run against Bayaw Jobs that produces alerts.** |
 | T5 | OpenAPI endpoint listing | – | `tools.test.ts` |
 | T6 | If Redis is down, scans answer `503` and are marked FAILED | – | `scan.test.ts` |
@@ -60,7 +63,7 @@ see [demo.md](demo.md)): **37 passed, 0 failed, 0 skipped**. The earlier dev-sta
 | X5 | Interpretation creates only PENDING findings; made-up evidence refs are ignored | – | `jobs/ai.test.ts` |
 | X6 | A malformed AI reply stores nothing and retries once | – | `jobs/ai.test.ts` |
 | X7 | Remediation is a draft; the finding changes only when an assessor accepts it | – | `jobs/ai.test.ts`, `finding.test.ts` |
-| X8 | A real AI run on a real scan | – | **Not done yet** (no API key on the build machine) |
+| X8 | A real AI run on a real scan | ✓ | Done 2026-11-20 with the team's OpenRouter key from Settings: automatic interpretations of a full run returned valid structured output |
 | **Findings, verification, risk (feature 05, rules 5 and 6)** | | | |
 | F1 | Manual findings start PENDING | ✓ | `finding.test.ts` |
 | F2 | Confirming needs a final severity and a CVSS score | ✓ | `finding.test.ts` |
@@ -87,6 +90,6 @@ These need a person and the real target:
 
 1. Full demo flow (AGENT.md §3, steps in [demo.md](demo.md)) against the local Bayaw Jobs (`wrangler dev`, registered as `http://host.docker.internal:8787`).
 2. One ZAP scan of the local Bayaw Jobs from the worker, with ALERT results (T4; the pipeline itself is verified).
-3. One real AI interpretation and remediation with the team's OpenRouter key saved in Settings (X8); note tokens and cost.
+3. One real AI remediation ("Suggest fix") with the team's key; note tokens and cost (interpretation is already verified, X8).
 4. Report exported to PDF from Chrome and checked page by page.
 5. Then, with the instructor's written approval, the same flow against the approved Bayaw Jobs environment.

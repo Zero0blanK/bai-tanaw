@@ -58,10 +58,10 @@ Findings verification → Risk assessment → Report**.
 | Step | Where in Tanaw |
 |---|---|
 | Define scope | Register the target (allowlisted host only), add HOST / URL / PORT_RANGE rules, optional test window |
-| Reconnaissance | DNS lookup, OpenAPI endpoint list, Nmap service detection |
+| Reconnaissance | DNS lookup, OpenAPI endpoint list, Nmap service detection (all started by one "Run full assessment") |
 | Scanning | HTTP security check, OWASP ZAP spider + passive scan, or import Nmap/ZAP reports |
-| Security assessment | Manual WSTG tests for the 3 categories, recorded as manual findings with evidence |
-| AI analysis | "Interpret with AI" on a scan (feature 1), "Suggest fix" on a finding (feature 2) |
+| Security assessment | Fixed rules turn every scan into PENDING tool findings; manual WSTG tests for the 3 categories are recorded as manual findings with evidence |
+| AI analysis | Automatic interpretation of every finished scan (feature 1), told which findings already exist; "Suggest fix" on a finding (feature 2) |
 | Verification | An assessor confirms, rejects or marks false positive, with notes and evidence |
 | Risk assessment | Final severity + CVSS v3.1 (Tanaw computes the score from the vector), OWASP Top 10, WSTG ID |
 | Report | Confirmed and fixed findings only, with evidence, history, remediation; export to PDF |
@@ -88,9 +88,15 @@ sequenceDiagram
     K->>DB: job ACTIVE, scan RUNNING
     K->>K: same scope + window checks again
     K->>T: run the tool (each extra request scope-checked too)
-    K->>DB: results + scan DONE (one transaction), job COMPLETED
-    W->>A: GET /scans/:id
+    K->>DB: results + tool findings + scan DONE (one transaction), job COMPLETED
+    K->>DB: INTERPRET job (if AI is set up and under the cap)
+    K->>Q: add {jobId}
+    Q->>K: INTERPRET: redacted results + known findings → AI → new PENDING findings
+    W->>A: GET /targets/:id/assessment (every 3s while anything runs)
 ```
+
+"Run full assessment" (`POST /targets/:id/scans/all`) creates one scan + job per tool in a single transaction, all
+sharing a `batch_id`; a tool whose requests fall outside scope is skipped and audited while the others run.
 
 Tool jobs run once (a second scan is noise on the target). AI jobs retry once on provider errors or malformed replies.
 If Redis is down the API answers `503` and marks the scan and job FAILED instead of leaving them queued forever.
