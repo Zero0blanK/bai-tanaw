@@ -138,7 +138,7 @@ tags removed from the data) → OpenAI Structured Outputs (strict JSON schema) o
 |---|---|
 | Scope | `checkScope` (allowlist → out-of-scope rules → target host → port ranges → URL prefixes) runs in the API when queueing and in the worker when running, on every report host, every extra request and every ZAP URL. Blocks are `403` + `scope_blocked` audit rows. Test windows are enforced. |
 | SSRF | Only exact allowlisted hostnames can be contacted; no redirects followed; URLs with credentials refused |
-| Auth | bcrypt passwords, 15-min JWT access token held in memory, httpOnly `SameSite=Strict` refresh cookie scoped to `/api/auth`, rotation with reuse detection, lockout after 5 failures, per-IP login rate limit, users re-checked on every request |
+| Auth | bcrypt passwords, 15-min JWT access token held in memory, httpOnly `SameSite=Strict` refresh cookie scoped to `/api/auth`, rotation with reuse detection, lockout after 5 failures (a wrong current password on password change counts too), per-IP login rate limit, users re-checked on every request; changing the password revokes every session |
 | Access control | Role checks on every route; admins can't remove themselves or the last admin |
 | Input | Zod on every body, query and param; uploads size-limited and typed by their bytes |
 | Shell | Nmap via `execFile` with an argument array; host/port regexes; `--` before the host |

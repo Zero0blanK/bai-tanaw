@@ -36,20 +36,21 @@ npm run dev:worker   # no port; logs "Worker ready"
 npm run dev:web      # http://localhost:3000
 ```
 
-Open <http://localhost:3000>, sign in as the seeded admin, and **change that password** (create a new admin under
-Users, sign in as it, then deactivate or delete the seeded one).
+Open <http://localhost:3000>, sign in as the seeded admin, and **change that password** on the Account page.
 
 To run OWASP ZAP scans, start its container too: `docker compose up -d zap` (a large image; first pull takes a while).
 
 ### Everything in Docker
 
 ```bash
-docker compose --profile app up -d --build
-docker compose run --rm api node dist/scripts/seed.js
+npm run env:init     # random JWT secrets and ZAP key in .env (never printed)
+npm run demo:up      # docker compose --profile app up -d --build
+npm run demo:seed    # first admin
 ```
 
-The API container applies migrations on start. Set `NODE_ENV=production` in `.env` for a real deployment: the API
-then refuses the example secrets.
+The API container applies migrations on start. The api and worker containers always run with `NODE_ENV=production`
+(the API refuses example secrets) and every port is bound to 127.0.0.1. This is how the demo runs; the full runbook,
+including reaching a target on the same laptop through `host.docker.internal`, is [demo.md](demo.md).
 
 ## 3. Environment variables
 
@@ -121,6 +122,7 @@ After changing `apps/api/prisma/schema.prisma`: `npm run db:migrate -- --name <c
 | AI buttons answer `503` | No `OPENAI_API_KEY` (or set `AI_PROVIDER=ollama`). |
 | AI buttons answer `429` | Daily cap reached (`AI_DAILY_LIMIT`); resets at midnight Philippine time. |
 | Login page loops or CORS errors | `CORS_ORIGIN` must equal the web origin exactly, including the port. |
+| `docker compose` fails on `docker-credential-desktop` (Git Bash) | Run it from PowerShell, or add `C:\Program Files\Docker\Dockeresourcesin` to `PATH`. |
 | Port 3000 already in use | Run the web with `npx next dev --port 3100` (in `apps/web`) and add `http://localhost:3100` to `CORS_ORIGIN`. |
 | `429` on login | Either 5 wrong passwords locked the account, or one IP made 20 attempts. Both clear after 15 minutes. |
 | `next build` can't find an export from `@tanaw/shared` | Build from the root (`npm run build`), which rebuilds the shared package first. |

@@ -10,8 +10,8 @@ rules (§2) and the verification plan (§14). Each check is covered twice:
 - **Automated:** `npm test` runs unit and API tests (Vitest + Supertest against `TEST_DATABASE_URL`), including the
   negative cases the live run can't trigger cheaply (lockout, AI cap, token theft).
 
-Last live run: 2026-11-20 against the dev stack: **36 passed, 0 failed, 1 skipped** (T3: Nmap wasn't installed where
-the dev worker ran; the worker Docker image has it).
+Last live run: 2026-11-20 against the full Docker stack (`ACCEPTANCE_TARGET_URL=http://host.docker.internal:4000`,
+see [demo.md](demo.md)): **37 passed, 0 failed, 0 skipped**. The earlier dev-stack run skipped T3 (no Nmap on the host).
 
 | ID | Check | Live | Automated tests |
 |---|---|---|---|
@@ -43,7 +43,7 @@ the dev worker ran; the worker Docker image has it).
 | T1 | HTTP check runs through the worker and stores results | ✓ | `tools.test.ts`, `processJob.test.ts` |
 | T2 | DNS lookup completes | ✓ | `tools.test.ts` |
 | T3 | Nmap service detection (fixed safe arguments, validated input) | ✓ (needs Nmap) | `tools.test.ts`; verified in the worker image |
-| T4 | ZAP spider + passive scan inside a scope context, only in-scope alerts kept, redacted | – | `tools.test.ts` (fake ZAP API). **Not yet run against the real ZAP container.** |
+| T4 | ZAP spider + passive scan inside a scope context, only in-scope alerts kept, redacted | – | `tools.test.ts` (fake ZAP API). Real run 2026-11-20: ZAP 2.17 container via the worker against Tanaw's own API, completed with no alerts (expected for that API). **Still to do: a run against Bayaw Jobs that produces alerts.** |
 | T5 | OpenAPI endpoint listing | – | `tools.test.ts` |
 | T6 | If Redis is down, scans answer `503` and are marked FAILED | – | `scan.test.ts` |
 | **Imports** | | | |
@@ -85,8 +85,8 @@ Paths: API tests are in `apps/api/src/routes/`, worker tests in `apps/worker/src
 
 These need a person and the real target:
 
-1. Full demo flow (AGENT.md §3) against the local Bayaw Jobs (`wrangler dev` on `http://localhost:8787`).
-2. One ZAP scan from the worker with the `zap` container (T4).
+1. Full demo flow (AGENT.md §3, steps in [demo.md](demo.md)) against the local Bayaw Jobs (`wrangler dev`, registered as `http://host.docker.internal:8787`).
+2. One ZAP scan of the local Bayaw Jobs from the worker, with ALERT results (T4; the pipeline itself is verified).
 3. One real AI interpretation and remediation with the team key (X8); note tokens and cost.
 4. Report exported to PDF from Chrome and checked page by page.
 5. Then, with the instructor's written approval, the same flow against the approved Bayaw Jobs environment.

@@ -14,7 +14,7 @@ deployment, evidence and the documents. Tickets already done are listed at the e
 |---|---|---|
 | Project lead | Coordination, approvals, documentation, presentation | PL-1 … PL-8 |
 | Frontend developer | `apps/web`: polish, accessibility, demo readiness | FE-1 … FE-5 |
-| Backend and database | `apps/api`, `apps/worker`, `packages/shared`, deployment | BE-1 … BE-7 |
+| Backend and database | `apps/api`, `apps/worker`, `packages/shared`, deployment | BE-2 … BE-7 (BE-1 done) |
 | Security tester | Recon, scans, manual WSTG tests, verification, evidence | ST-1 … ST-11 |
 | AI integration | Prompts, AI quality, data handling, AI write-up | AI-1 … AI-8 |
 
@@ -49,17 +49,17 @@ The UI is built (`apps/web`, AGENT.md §10). These tickets polish it for the dem
 
 | ID | Ticket | Size | Depends on | Done when |
 |---|---|---|---|---|
-| BE-1 | **Deployment host.** Pick where Docker Compose runs (VPS, school server, or local-only demo; AGENT.md §16), set production secrets, HTTPS in front of web and API, ZAP on the internal network only. | L | PL-1 | The deployed URL works with `NODE_ENV=production`; ZAP isn't reachable from outside. |
-| BE-2 | **Real ZAP run.** Run one ZAP scan from the worker against the local Bayaw Jobs (`wrangler dev`) with the `zap` container. | S | – | ALERT results stored; the context kept the spider inside scope. |
+| BE-2 | **Real ZAP run on Bayaw Jobs.** The ZAP pipeline already ran for real against Tanaw's own API (no alerts). Run one scan of the local Bayaw Jobs (`http://host.docker.internal:8787`, docs/demo.md). | S | – | ALERT results stored; the context kept the spider inside scope. |
 | BE-3 | **Real AI smoke test.** Run interpret and remediate with the team key on a real scan; record tokens and cost per call from `ai_analyses`. | S | AI-1 | Both features produce valid output; cost per call noted for AI-6. |
 | BE-4 | **OpenAPI docs at `/api/docs`.** Describe every endpoint in AGENT.md §8 and serve it with Scalar. | M | – | Every route appears with its request and response shapes. |
-| BE-5 | **Backups.** Nightly `pg_dump` of the production database and a copy of `storage/`. | S | BE-1 | A restore has been tried once. |
+| BE-5 | **Backups.** Back up the database and `storage/` before the demo (commands in docs/demo.md §6). | S | – | A restore has been tried once. |
 | BE-6 | **CI.** Run type-check, lint, tests (with a Postgres service) and the Docker builds on every PR. | M | – | A PR shows all checks green. |
 | BE-7 | **Large report imports.** Try 5 MB Nmap/ZAP files; check API memory and time. | S | – | The largest allowed file imports in under 10 s. |
 
 Done: schema and migrations, auth (lockout, rotating refresh tokens), roles, audit log, scope engine, all five tools,
 imports with redaction, job queue, AI pipeline with cap and 503, findings verification, retest, dashboard, report,
-Dockerfiles, 165+ automated tests, generated [schema.md](schema.md).
+Dockerfiles, 165+ automated tests, generated [schema.md](schema.md), local-only Docker deployment (BE-1, ADR 0002,
+[demo.md](demo.md)) with password change.
 
 ## Security tester (ST)
 
@@ -98,6 +98,6 @@ Work in `apps/worker/src/ai/prompts/` and **commit the prompts** (see its README
 ## Suggested order
 
 1. **Week 1:** PL-1 to PL-4, PL-7, BE-2, BE-6, AI-1, AI-2, ST-1, ST-2, FE-1
-2. **Week 2:** BE-1, BE-3, BE-4, ST-3 to ST-5, AI-3 to AI-5, FE-2, FE-3
+2. **Week 2:** BE-3, BE-4, ST-3 to ST-5, AI-3 to AI-5, FE-2, FE-3
 3. **Week 3:** ST-6 to ST-9, AI-6, BE-5, BE-7, FE-4, FE-5
 4. **Week 4:** ST-10, ST-11, AI-7, PL-8, final rehearsal

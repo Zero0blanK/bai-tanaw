@@ -5,7 +5,7 @@ built for the CS24 final project. It assesses an **authorized** web application 
 tool results, uses AI to explain results and suggest fixes, and keeps a human assessor in charge of what counts as a
 confirmed vulnerability.
 
-> Status: Phases 1-8 complete (backend, web UI, docs, acceptance suite). Next: deployment (Phase 9). Docs: [docs/](docs/README.md). The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
+> Status: Phases 1-9 complete (backend, web UI, docs, acceptance suite, local-only Docker deployment). Demo runbook: [docs/demo.md](docs/demo.md). Docs: [docs/](docs/README.md). The full build plan, rules, architecture and current status are in [AGENT.md](AGENT.md).
 
 ## Quick start (infrastructure)
 
@@ -26,7 +26,7 @@ npm run dev:web      # http://localhost:3000
 ```
 
 Checks before every commit: `npm run type-check && npm run lint && npm test`. End-to-end against a running stack: `npm run acceptance`.
-Everything in Docker: `docker compose --profile app up -d --build`.
+Everything in Docker (the demo setup): `npm run env:init`, `npm run demo:up`, `npm run demo:seed`; see [docs/demo.md](docs/demo.md).
 
 ## Layout
 
