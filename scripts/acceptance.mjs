@@ -5,8 +5,11 @@
 //
 //   npm run acceptance                      # uses API_URL / SEED_ADMIN_* from the root .env
 //   API_URL=http://localhost:4000 npm run acceptance
+//   ACCEPTANCE_TARGET_URL=http://host.docker.internal:4000 npm run acceptance   # Docker stack (docs/demo.md)
 //
-// Needs `localhost` in ASSESSMENT_ALLOWED_HOSTS. Creates two throwaway users (deleted at the end) and two targets
+// The scan target is Tanaw's own API: API_URL's origin, or ACCEPTANCE_TARGET_URL when the worker reaches the API
+// by another name (inside Docker, `localhost` is the worker container itself).
+// Needs the target's host (`localhost`, or `host.docker.internal` for Docker) in ASSESSMENT_ALLOWED_HOSTS. Creates two throwaway users (deleted at the end) and two targets
 // named "Acceptance <timestamp>" (targets can't be deleted; they stay as a record).
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -16,7 +19,7 @@ const envFile = new URL('.env', root);
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 const API = `${(process.env.API_URL ?? 'http://localhost:4000').replace(/\/$/, '')}/api`;
-const SELF = new URL(API).origin; // Tanaw's own API is the scan target
+const SELF = new URL(process.env.ACCEPTANCE_TARGET_URL ?? API).origin; // Tanaw's own API is the scan target
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const results = [];
 const cleanup = [];
@@ -145,7 +148,7 @@ async function main() {
       token: ctx.assessor,
       body: { name: `Acceptance ${stamp}`, base_url: SELF, authorization_note: 'Automated acceptance run against Tanaw itself.' },
     });
-    if (res.status === 403) throw new Error('localhost is not in ASSESSMENT_ALLOWED_HOSTS');
+    if (res.status === 403) throw new Error(`${new URL(SELF).hostname} is not in ASSESSMENT_ALLOWED_HOSTS`);
     ctx.target = status(res, 201).body.data;
   });
   if (!ctx.target) return;
