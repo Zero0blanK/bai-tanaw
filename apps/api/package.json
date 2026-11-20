@@ -17,7 +17,8 @@
     "db:deploy": "node scripts/prisma.mjs migrate deploy",
     "db:studio": "node scripts/prisma.mjs studio",
     "seed": "tsx --conditions=development --env-file-if-exists=../../.env src/scripts/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "docs:schema": "tsx --conditions=development src/scripts/gen-schema-doc.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
