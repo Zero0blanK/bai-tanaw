@@ -1,9 +1,12 @@
 # Tanaw docs
 
-To be written while building (see [AGENT.md](../AGENT.md) §13):
+| Doc | What's in it |
+|---|---|
+| [setup.md](setup.md) | Run Tanaw locally or in Docker, every environment variable, checks, troubleshooting |
+| [architecture.md](architecture.md) | Components, request chain, assessment workflow, job flow, tools, AI pipeline (with the OWASP LLM Top 10 table), security controls |
+| [schema.md](schema.md) | Every table, column, index and enum. **Generated** from `apps/api/prisma/schema.prisma` |
+| [acceptance.md](acceptance.md) | The acceptance checks, the live script (`npm run acceptance`) and which tests cover each check |
+| [tasks.md](tasks.md) | Open work per role, as tickets (roles only, never names) |
+| [adr/](adr/) | Decision records: [0001 separate platform](adr/0001-separate-platform.md) |
 
-- `setup.md`: run it locally, every env var, first login
-- `architecture.md`: services, request chain, job flow, AI pipeline, security controls
-- `schema.md`: every table and column (generate from `apps/api/prisma/schema.prisma`)
-- `tasks.md`: role responsibilities broken into tickets (roles only, no names)
-- `adr/`: one short file per big decision (`0001-separate-platform.md`, …)
+The build plan, rules and current status live in [AGENT.md](../AGENT.md).
