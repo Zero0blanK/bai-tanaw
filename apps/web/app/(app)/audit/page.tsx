@@ -14,7 +14,7 @@ import type { AuditLog } from '@/types/api';
 
 // Mirrors AUDIT_ACTIONS in apps/api/src/services/audit.service.ts.
 const ACTIONS = [
-  'login_success', 'login_failed', 'login_locked', 'logout', 'refresh_reuse_detected',
+  'login_success', 'login_failed', 'login_locked', 'logout', 'password_changed', 'refresh_reuse_detected',
   'user_created', 'user_updated', 'user_deleted',
   'target_created', 'target_updated', 'scope_rule_added', 'scope_rule_deleted', 'scope_blocked',
   'scan_started', 'report_imported', 'ai_requested',
@@ -24,7 +24,7 @@ const ACTIONS = [
 function tone(action: string): Tone {
   if (action === 'scope_blocked' || action === 'refresh_reuse_detected' || action === 'login_locked') return 'red';
   if (action === 'login_failed') return 'amber';
-  if (action.startsWith('login') || action === 'logout') return 'slate';
+  if (action.startsWith('login') || action === 'logout' || action === 'password_changed') return 'slate';
   if (action === 'ai_requested') return 'purple';
   return 'blue';
 }
