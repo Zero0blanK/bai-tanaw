@@ -1,6 +1,8 @@
-import type { Role } from '@tanaw/shared';
+import type { AiProvider, Role } from '@tanaw/shared';
+import { AI_SETTINGS_KEY, encryptAiKey } from '@tanaw/shared/node';
 import type { Express } from 'express';
 import request from 'supertest';
+import { env } from '../config/env.js';
 import { prisma } from '../config/prisma.js';
 import { hashPassword } from '../utils/crypto.js';
 
@@ -50,4 +52,14 @@ export async function login(app: Express, email: string, password = PASSWORD) {
 export async function auditActions(): Promise<string[]> {
   const rows = await prisma.auditLog.findMany({ orderBy: { created_at: 'asc' }, select: { action: true } });
   return rows.map((r) => r.action);
+}
+
+/** Stores AI settings the way the Settings page does (key encrypted). Pass no key to leave it unset. */
+export async function setAiSettings(provider: AiProvider = 'openrouter', apiKey: string | null = 'sk-or-v1-test-not-real-0000000000') {
+  const data = {
+    value: { provider, model: 'openai/gpt-4.1-mini' },
+    secret: apiKey ? encryptAiKey(apiKey, env.SETTINGS_ENCRYPTION_KEY) : null,
+    secret_hint: apiKey ? `…${apiKey.slice(-4)}` : null,
+  };
+  await prisma.appSetting.upsert({ where: { key: AI_SETTINGS_KEY }, create: { key: AI_SETTINGS_KEY, ...data }, update: data });
 }

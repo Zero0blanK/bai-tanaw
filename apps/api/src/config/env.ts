@@ -24,8 +24,9 @@ const EnvSchema = z.object({
 
   ASSESSMENT_ALLOWED_HOSTS: z.string().default(''),
 
-  AI_PROVIDER: z.enum(['openai', 'ollama']).default('openai'),
-  OPENAI_API_KEY: z.string().optional(),
+  // Master key for secrets admins enter in Settings (the AI provider key). Losing or changing it means
+  // re-entering those secrets; it never encrypts anything else.
+  SETTINGS_ENCRYPTION_KEY: z.string().min(32, 'must be at least 32 characters (run npm run env:init)'),
   AI_DAILY_LIMIT: z.coerce.number().int().min(0).default(20),
 
   NMAP_DEFAULT_PORTS: z.string().default('80,443'),
@@ -34,7 +35,7 @@ const EnvSchema = z.object({
   MAX_IMPORT_SIZE_MB: z.coerce.number().positive().max(50).default(5),
 }).superRefine((e, ctx) => {
   if (e.NODE_ENV !== 'production') return;
-  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'SETTINGS_ENCRYPTION_KEY'] as const) {
     if (e[key].length < 32 || e[key].startsWith('change-me')) {
       ctx.addIssue({ code: 'custom', path: [key], message: 'production needs a random secret of 32+ characters' });
     }
@@ -50,7 +51,7 @@ const EnvSchema = z.object({
 export type Env = z.infer<typeof EnvSchema> & { ALLOWED_HOSTS: string[] };
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  // Treat empty strings as unset so `OPENAI_API_KEY=` in .env means "not configured".
+  // Treat empty strings as unset so `KEY=` in .env falls back to the default.
   const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v !== ''));
   const parsed = EnvSchema.safeParse(cleaned);
   if (!parsed.success) {

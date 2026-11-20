@@ -24,6 +24,7 @@ export default defineConfig({
       JWT_ACCESS_SECRET: 'test-access-secret-0123456789abcdef',
       JWT_REFRESH_SECRET: 'test-refresh-secret-0123456789abcdef',
       BCRYPT_ROUNDS: '4',
+      SETTINGS_ENCRYPTION_KEY: 'test-settings-key-0123456789abcdefghij',
       CORS_ORIGIN: 'http://localhost:3000',
       STORAGE_LOCAL_DIR: join(tmpdir(), 'tanaw-api-test-storage'),
       ASSESSMENT_ALLOWED_HOSTS: 'bayawjobs.riomar.dev,bayawjobs-api.riomar.dev,localhost,127.0.0.1',

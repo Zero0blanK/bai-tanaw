@@ -8,7 +8,7 @@ const { createApp } = await import('../app.js');
 const { env } = await import('../config/env.js');
 const { prisma } = await import('../config/prisma.js');
 const { startOfManilaDay } = await import('../services/ai.service.js');
-const { createUser, hasTestDb, login, resetDb } = await import('../test/helpers.js');
+const { createUser, hasTestDb, login, resetDb, setAiSettings } = await import('../test/helpers.js');
 
 describe('startOfManilaDay', () => {
   it('is midnight in UTC+8', () => {
@@ -19,7 +19,6 @@ describe('startOfManilaDay', () => {
 
 describe.skipIf(!hasTestDb)('AI endpoints', () => {
   const app = createApp();
-  const originalKey = env.OPENAI_API_KEY;
   const originalLimit = env.AI_DAILY_LIMIT;
   let token: string;
   let userId: string;
@@ -27,14 +26,13 @@ describe.skipIf(!hasTestDb)('AI endpoints', () => {
   beforeEach(async () => {
     await resetDb();
     enqueue.mockClear();
-    env.OPENAI_API_KEY = 'sk-test-not-real-0000000000';
+    await setAiSettings();
     env.AI_DAILY_LIMIT = 20;
     const assessor = await createUser('ASSESSOR');
     userId = assessor.id;
     token = (await login(app, assessor.email)).token;
   });
   afterEach(() => {
-    env.OPENAI_API_KEY = originalKey;
     env.AI_DAILY_LIMIT = originalLimit;
   });
   afterAll(() => prisma.$disconnect());
@@ -60,12 +58,26 @@ describe.skipIf(!hasTestDb)('AI endpoints', () => {
   });
 
   it('returns 503 when no AI provider is configured, before queueing anything', async () => {
-    env.OPENAI_API_KEY = undefined;
+    await setAiSettings('openrouter', null);
     const { scan } = await doneScan();
     const res = await as(request(app).post(`/api/scans/${scan.id}/interpret`));
     expect(res.status).toBe(503);
+    expect(res.body.message).toMatch(/Settings/);
     expect(enqueue).not.toHaveBeenCalled();
     expect(await prisma.job.count()).toBe(0);
+  });
+
+  it('returns 503 when the stored key can no longer be decrypted', async () => {
+    const { scan } = await doneScan();
+    await prisma.appSetting.update({ where: { key: 'ai' }, data: { secret: 'v1.AAAA.AAAA.AAAA.AAAA' } });
+    const res = await as(request(app).post(`/api/scans/${scan.id}/interpret`));
+    expect(res.status).toBe(503);
+  });
+
+  it('needs no key for Ollama', async () => {
+    await setAiSettings('ollama', null);
+    const { scan } = await doneScan();
+    expect((await as(request(app).post(`/api/scans/${scan.id}/interpret`))).status).toBe(202);
   });
 
   it('enforces the daily AI cap per user with 429', async () => {
@@ -78,7 +90,7 @@ describe.skipIf(!hasTestDb)('AI endpoints', () => {
     expect(third.body.message).toMatch(/Daily AI limit/);
 
     const usage = await as(request(app).get('/api/ai/usage'));
-    expect(usage.body.data).toEqual({ used: 2, limit: 2, remaining: 0 });
+    expect(usage.body.data).toEqual({ used: 2, limit: 2, remaining: 0, configured: true });
 
     // Another assessor has their own allowance.
     const other = await createUser('ASSESSOR');

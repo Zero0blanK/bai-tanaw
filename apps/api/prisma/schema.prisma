@@ -42,6 +42,7 @@ model User {
   ai_analyses       AiAnalysis[]
   verification_logs VerificationLog[]
   jobs_created      Job[]
+  settings_updated  AppSetting[]
 
   @@map("users")
 }
@@ -377,4 +378,24 @@ model Job {
   @@index([ref_id])
   @@index([created_by, created_at])
   @@map("jobs")
+}
+
+/// Settings an admin changes in the app (one row per area, e.g. "ai"). Secrets never sit here as plain text:
+/// `secret` is AES-256-GCM ciphertext keyed from SETTINGS_ENCRYPTION_KEY (see @tanaw/shared/node secretBox).
+model AppSetting {
+  /// Area name, e.g. "ai"
+  key         String   @id
+  /// Non-secret values, e.g. { provider, model }
+  value       Json     @default("{}")
+  /// Encrypted secret ("v1.<salt>.<iv>.<tag>.<ciphertext>"), e.g. the AI provider API key
+  secret      String?
+  /// Last 4 characters of the secret, for the UI
+  secret_hint String?
+  updated_by  String?  @db.Uuid
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  updater User? @relation(fields: [updated_by], references: [id], onDelete: SetNull)
+
+  @@map("app_settings")
 }

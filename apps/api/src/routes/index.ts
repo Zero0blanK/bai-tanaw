@@ -5,6 +5,7 @@ import { createAuthRouter } from './auth.routes.js';
 import { createFindingRouter, createInsightsRouter } from './finding.routes.js';
 import { healthRouter } from './health.routes.js';
 import { createJobRouter, createScanRouter, createTargetScanRouter } from './scan.routes.js';
+import { createSettingRouter } from './setting.routes.js';
 import { createTargetRouter } from './target.routes.js';
 import { createUserRouter } from './user.routes.js';
 
@@ -23,6 +24,7 @@ export function createApiRouter(): Router {
   router.use('/ai', createAiRouter());
   router.use('/jobs', createJobRouter());
   router.use('/audit-logs', createAuditLogRouter());
+  router.use('/settings', createSettingRouter());
   router.use('/', createInsightsRouter());
   return router;
 }

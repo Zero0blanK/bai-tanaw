@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = [
   'remediation_set',
   'evidence_added',
   'report_exported',
+  'settings_updated',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

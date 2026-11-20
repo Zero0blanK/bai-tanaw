@@ -21,6 +21,7 @@ Shapes of `scan_results.data` are in `packages/shared/src/schemas/scanResults.ts
 - [`ai_analyses`](#ai_analyses): Every AI call is recorded, so the report can show what the AI said and when.
 - [`verification_logs`](#verification_logs)
 - [`jobs`](#jobs): Mirrors the BullMQ job. The queue message carries only { jobId }.
+- [`app_settings`](#app_settings): Settings an admin changes in the app (one row per area, e.g. "ai"). Secrets never sit here as plain text:\n`secret` is AES-256-GCM ciphertext keyed from SETTINGS_ENCRYPTION_KEY (see @tanaw/shared/node secretBox).
 
 ### users
 
@@ -224,6 +225,20 @@ Mirrors the BullMQ job. The queue message carries only { jobId }.
 | `finished_at` | DateTime | yes |  |  |
 
 Indexes: `index (type, status)`, `index (ref_id)`, `index (created_by, created_at)`.
+
+### app_settings
+
+Settings an admin changes in the app (one row per area, e.g. "ai"). Secrets never sit here as plain text:\n`secret` is AES-256-GCM ciphertext keyed from SETTINGS_ENCRYPTION_KEY (see @tanaw/shared/node secretBox).
+
+| Column | Type | Null | Default | Key / notes |
+|---|---|---|---|---|
+| `key` | String | no |  | PK; Area name, e.g. "ai" |
+| `value` | Json | no | `{}` | Non-secret values, e.g. { provider, model } |
+| `secret` | String | yes |  | Encrypted secret ("v1.<salt>.<iv>.<tag>.<ciphertext>"), e.g. the AI provider API key |
+| `secret_hint` | String | yes |  | Last 4 characters of the secret, for the UI |
+| `updated_by` | String (Uuid) | yes |  | FK → `users.id` (on delete setnull) |
+| `created_at` | DateTime | no | now() |  |
+| `updated_at` | DateTime | no | auto (updated at) |  |
 
 ## Enums
 
