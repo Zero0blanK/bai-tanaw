@@ -12,6 +12,7 @@ import {
   SCAN_RESULT_TYPES,
   SCOPE_ASSET_TYPES,
   SEVERITIES,
+  AI_PROVIDERS,
 } from '../enums/index.js';
 import { isValidPortSpec, parseHttpUrl } from '../scope.js';
 
@@ -64,6 +65,30 @@ export const ChangePasswordBody = z
     path: ['new_password'],
     message: 'new password must differ from the current one',
   });
+
+/**
+ * Admin settings for AI. `api_key` is write-only: send it to set or replace the key, omit it to keep the stored
+ * one, or send `clear_key: true` to delete it. The API never returns it.
+ */
+export const AiSettingsBody = z
+  .object({
+    provider: z.enum(AI_PROVIDERS),
+    model: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .regex(/^[A-Za-z0-9._:/@-]+$/, 'model may only contain letters, digits and . _ : / @ -'),
+    api_key: z
+      .string()
+      .trim()
+      .min(16, 'API key looks too short')
+      .max(512)
+      .regex(/^\S+$/, 'API key must not contain spaces')
+      .optional(),
+    clear_key: z.boolean().optional(),
+  })
+  .refine((b) => !(b.api_key && b.clear_key), { path: ['clear_key'], message: 'send a new key or clear it, not both' });
 
 export const CreateUserBody = z.object({
   email: z.email().trim().toLowerCase().max(254),
@@ -200,6 +225,7 @@ export const DashboardQuery = z.object({ target_id: uuid('target_id').optional()
 
 export type LoginInput = z.infer<typeof LoginBody>;
 export type ChangePasswordInput = z.infer<typeof ChangePasswordBody>;
+export type AiSettingsInput = z.infer<typeof AiSettingsBody>;
 export type CreateUserInput = z.infer<typeof CreateUserBody>;
 export type UpdateUserInput = z.infer<typeof UpdateUserBody>;
 export type CreateTargetInput = z.infer<typeof CreateTargetBody>;

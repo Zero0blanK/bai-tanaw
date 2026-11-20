@@ -52,6 +52,16 @@ export type EvidenceType = (typeof EVIDENCE_TYPES)[number];
 export const AI_TASKS = ['INTERPRET', 'REMEDIATE'] as const;
 export type AiTask = (typeof AI_TASKS)[number];
 
+/** Where AI calls go. OpenRouter and OpenAI need an API key (entered in Settings, stored encrypted); Ollama doesn't. */
+export const AI_PROVIDERS = ['openrouter', 'openai', 'ollama'] as const;
+export type AiProvider = (typeof AI_PROVIDERS)[number];
+export const AI_DEFAULT_MODELS: Record<AiProvider, string> = {
+  openrouter: 'openai/gpt-4.1-mini',
+  openai: 'gpt-4.1-mini',
+  ollama: 'llama3.1:8b',
+};
+export const aiProviderNeedsKey = (provider: AiProvider): boolean => provider !== 'ollama';
+
 export const AI_CONFIDENCE = ['LOW', 'MEDIUM', 'HIGH'] as const;
 export type AiConfidence = (typeof AI_CONFIDENCE)[number];
 
