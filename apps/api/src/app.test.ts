@@ -17,6 +17,7 @@ describe('app skeleton', () => {
     expect(res.headers['x-powered-by']).toBeUndefined();
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['strict-transport-security']).toBeDefined();
+    expect(res.headers['permissions-policy']).toContain('camera=()');
   });
 
   it('unknown routes return a 404 envelope', async () => {

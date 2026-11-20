@@ -14,6 +14,11 @@ export function createApp(): express.Express {
   app.set('trust proxy', 1);
 
   app.use(helmet());
+  // Helmet doesn't set Permissions-Policy. A JSON API needs no browser features, so deny them all.
+  app.use((_req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
+    next();
+  });
   app.use(
     cors({
       origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
