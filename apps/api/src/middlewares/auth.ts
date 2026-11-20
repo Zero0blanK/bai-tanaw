@@ -41,7 +41,7 @@ export function requireRole(...roles: Role[]): RequestHandler {
   };
 }
 
-/** Shorthands for the three roles (AGENT.md §6). */
+/** Shorthands for the three roles. */
 export const ROLE_GROUPS = {
   admin: ['ADMIN'],
   assessor: ['ADMIN', 'ASSESSOR'],

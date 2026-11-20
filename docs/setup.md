@@ -54,14 +54,14 @@ terminal, open a new one, and try again (new installs only show up in new termin
 ## 2. Get the code
 
 ```bash
-git clone <repo-url> tanaw
+git clone https://github.com/Zero0blanK/bai-tanaw.git
 ```
 
 ```bash
-cd tanaw
+cd bai-tanaw
 ```
 
-Replace `<repo-url>` with the repository address. Every later command runs **inside this `tanaw` folder**.
+This downloads the code into a new `bai-tanaw` folder. Every later command runs **inside that folder**.
 
 Now create your settings file:
 
@@ -155,7 +155,7 @@ npm run db:deploy
 npm run seed
 ```
 
-**Step 5. Start the three apps**, each in **its own terminal window**, all inside the `tanaw` folder:
+**Step 5. Start the three apps**, each in **its own terminal window**, all inside the `bai-tanaw` folder:
 
 ```bash
 npm run dev:api

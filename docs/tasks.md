@@ -7,7 +7,7 @@ matching board card, not in this file.
 done first. **Done when**: the check a reviewer from another role ticks off.
 
 **Status (2026-11-20):** the platform is built, tested and running as a local Docker demo: API, worker, web UI (see
-[architecture.md](architecture.md) and AGENT.md §17). What's left is real testing against the target, prompt work,
+[architecture.md](architecture.md)). What's left is real testing against the target, prompt work,
 deployment, evidence and the documents. Tickets already done are listed at the end of each section for reference.
 
 | Role | Main responsibilities | Open tickets |
@@ -27,7 +27,7 @@ deployment, evidence and the documents. Tickets already done are listed at the e
 | PL-1 | **Written approval for the target.** Ask the instructor to approve Bayaw Jobs (`bayawjobs.riomar.dev`, `bayawjobs-api.riomar.dev`) as the target, which environment (staging or production), and the testing window. | S | – | Approval attached under "Proof of authorization" in Deliverable 1; its date is in the target's authorization note in Bai-Tanaw. |
 | PL-2 | **Task board.** Turn every open ticket here into a board card with role label, size and dependencies. | S | – | Every open ticket ID exists on the board. |
 | PL-3 | **Assign owners.** | S | PL-2 | No unassigned ticket in the current milestone. |
-| PL-4 | **Branch and review rules.** Feature branches `feat/<ticket-id>-short-name` from `main`, PR back with one review from another role (AGENT.md §9). | S | – | Written in the README or a PR template; the first PR follows them. |
+| PL-4 | **Branch and review rules.** Feature branches `feat/<ticket-id>-short-name` from `main`, PR back with one review from another role. | S | – | Written in the README or a PR template; the first PR follows them. |
 | PL-5 | **Weekly milestone check** against the Project Timeline in Deliverable 1. | S (weekly) | PL-2 | A dated note per week. |
 | PL-6 | **Ethics check before each testing session.** Scope rules in Bai-Tanaw match the approval; only test accounts; ZAP active scan off. | S (each) | PL-1, ST-2 | A checklist entry per session (date, scope screenshot, who checked). |
 | PL-7 | **Rename the Google Doc deliverables to Bai-Tanaw** and update the architecture section (Docker, PostgreSQL, BullMQ instead of Workers, D1, Queues). Use [architecture.md](architecture.md) and [schema.md](schema.md). | M | – | No old name left; diagrams match architecture.md. |
@@ -35,7 +35,7 @@ deployment, evidence and the documents. Tickets already done are listed at the e
 
 ## Frontend developer (FE)
 
-The UI is built (`apps/web`, AGENT.md §10) and redesigned (Swiss editorial, moderation queue). These tickets polish it
+The UI is built (`apps/web`) and redesigned (Swiss editorial, moderation queue). These tickets polish it
 for the demo. Done: FE-1 mobile and accessibility pass (no horizontal scroll at 375 px on the main pages, keyboard
 navigation, dialogs, focus states).
 
@@ -52,7 +52,7 @@ navigation, dialogs, focus states).
 |---|---|---|---|---|
 | BE-2 | **Real ZAP run on Bayaw Jobs.** The ZAP pipeline already ran for real against Bai-Tanaw's own API (no alerts). Run one scan of the local Bayaw Jobs (`http://host.docker.internal:8787`, docs/demo.md). | S | – | ALERT results stored; the context kept the spider inside scope. |
 | BE-3 | **Real AI smoke test.** Interpretation is verified (automatic runs with the team's OpenRouter key, 2026-11-20). Still: run "Suggest fix" on a real finding; record tokens and cost per call from `ai_analyses`. | S | AI-1 | Both features produce valid output; cost per call noted for AI-6. |
-| BE-4 | **OpenAPI docs at `/api/docs`.** Describe every endpoint in AGENT.md §8 and serve it with Scalar. | M | – | Every route appears with its request and response shapes. |
+| BE-4 | **OpenAPI docs at `/api/docs`.** Describe every API endpoint and serve it with Scalar. | M | – | Every route appears with its request and response shapes. |
 | BE-5 | **Backups.** Back up the database and `storage/` before the demo (commands in docs/demo.md §6). | S | – | A restore has been tried once. |
 | BE-6 | **CI.** Run type-check, lint, tests (with a Postgres service) and the Docker builds on every PR. | M | – | A PR shows all checks green. |
 | BE-7 | **Large report imports.** Try 5 MB Nmap/ZAP files; check API memory and time. | S | – | The largest allowed file imports in under 10 s. |

@@ -1,4 +1,4 @@
-// Validates every environment variable the API needs at startup (AGENT.md §9).
+// Validates every environment variable the API needs at startup.
 // A missing or malformed value crashes the process with a clear message, never with a stack trace deep in a request.
 
 import { parseAllowedHosts } from '@tanaw/shared';

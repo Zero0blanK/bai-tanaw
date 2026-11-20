@@ -30,7 +30,7 @@ export const FINDING_MESSAGES = {
   RETEST_MANUAL: 'This finding did not come from a tool run Bai-Tanaw can repeat; retest it by hand and attach evidence',
 } as const;
 
-/** The status machine (AGENT.md §7.2). Anything not listed is refused. */
+/** The status machine. Anything not listed is refused. */
 export const ALLOWED_TRANSITIONS: Record<FindingStatus, FindingStatus[]> = {
   PENDING: ['CONFIRMED', 'REJECTED', 'FALSE_POSITIVE'],
   CONFIRMED: ['FIXED'],
@@ -102,7 +102,7 @@ export const findingService = {
     return finding;
   },
 
-  /** The ONLY way a finding leaves PENDING (AGENT.md §2.5). Log + status change in one transaction. */
+  /** The ONLY way a finding leaves PENDING. Log + status change in one transaction. */
   async verify(id: string, input: VerifyFindingInput, actor: Actor & { id: string }) {
     const finding = await findingRepository.findById(id);
     if (!finding) throw new NotFoundError(FINDING_MESSAGES.NOT_FOUND);

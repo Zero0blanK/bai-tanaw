@@ -6,7 +6,7 @@ import type { Job } from '@/types/api';
 
 const POLL_MS = 2_000;
 
-/** Polls GET /jobs/:id every 2s until COMPLETED or FAILED, then calls onDone once (AGENT.md §10). */
+/** Polls GET /jobs/:id every 2s until COMPLETED or FAILED, then calls onDone once. */
 export function useJob(jobId: string | null, onDone?: (job: Job) => void) {
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-// Shapes of scan_results.data per result type (AGENT.md §7.4).
+// Shapes of scan_results.data per result type.
 // Kept identical to the prototype so the AI prompts and the UI carry over.
 
 import { z } from 'zod';

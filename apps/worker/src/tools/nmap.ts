@@ -1,6 +1,6 @@
 // Nmap service detection (WSTG-INFO-02, NIST 800-115 discovery). Non-destructive by design:
 // -sV (version detection) at -T3 (normal timing), no scripts, no OS detection, no UDP.
-// Runs with execFile and an argument array; host and ports are validated first (AGENT.md §2.8).
+// Runs with execFile and an argument array; host and ports are validated first.
 
 import { execFile } from 'node:child_process';
 import { isSafeNmapHost, isSafeNmapPorts, type ScanResultInput } from '@tanaw/shared';

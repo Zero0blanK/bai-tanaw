@@ -1,6 +1,6 @@
 // After a scan finishes, the AI interpretation is queued automatically (no button). It is skipped, never forced,
 // when AI isn't set up, the scan has nothing worth reading, or the person who started the scan used up their daily
-// AI calls. Same limits as a manual request: the job counts against that person's AGENT.md §7.5 cap.
+// AI calls. Same limits as a manual request: the job counts against that person's daily AI cap.
 
 import { AUTO_INTERPRET_TOOLS, startOfManilaDay } from '@tanaw/shared';
 import { AI_SETTINGS_KEY, resolveAiSettings } from '@tanaw/shared/node';

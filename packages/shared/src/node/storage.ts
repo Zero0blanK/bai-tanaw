@@ -1,4 +1,4 @@
-// Local-disk storage for raw tool output, uploaded reports and evidence (AGENT.md §4 "Files").
+// Local-disk storage for raw tool output, uploaded reports and evidence.
 // Keys are relative paths like "targets/<id>/scans/<scanId>.xml"; they never escape the base directory.
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';

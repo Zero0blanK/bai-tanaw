@@ -31,6 +31,6 @@ the prototype (scope rules, tools, parsers, AI pipeline, verification) was porte
 - Bai-Tanaw has its own accounts (ADMIN / ASSESSOR / VIEWER) with lockout, rotating refresh tokens and an audit log; the
   target's demo accounts give no access to Bai-Tanaw.
 - Real foreign keys and transactions: verification and scan results are atomic, and deleting a user keeps history.
-- More to operate: Bai-Tanaw needs a host that can run Docker Compose (open decision in AGENT.md §16), its own secrets and
+- More to operate: Bai-Tanaw needs a host that can run Docker Compose (an open decision at the time), its own secrets and
   HTTPS. Bai-Tanaw must reach the target over the internet, so production scans depend on the instructor's written approval.
-- The prototype in the Bayaw Jobs repo stays as reference until the team decides what to do with it (AGENT.md §16).
+- The prototype in the Bayaw Jobs repo stays as reference until the team decides what to do with it.

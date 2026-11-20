@@ -142,7 +142,7 @@ export const findingRepository = {
     return { byStatus, byCategory, bySource, confirmedBySeverity, pendingByAiSeverity, scansByStatus, scansByTool };
   },
 
-  /** Report: confirmed and fixed findings only (AGENT.md §2.5), most severe first. */
+  /** Report: confirmed and fixed findings only, most severe first. */
   findForReport(target_id: string) {
     return prisma.finding.findMany({
       where: { target_id, status: { in: ['CONFIRMED', 'FIXED'] } },

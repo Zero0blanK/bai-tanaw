@@ -1,4 +1,4 @@
-// Admin settings (AGENT.md §7.5). Today only "ai": provider, model and the provider API key.
+// Admin settings. Today only "ai": provider, model and the provider API key.
 // The key is encrypted before it reaches the database (AES-256-GCM, scrypt-derived key, see secretBox) and is
 // write-only: no endpoint ever returns it, only whether one is stored and its last 4 characters.
 

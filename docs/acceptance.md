@@ -1,6 +1,6 @@
 # Acceptance checks
 
-Bai-Tanaw is accepted when every check below passes. They follow the instructor's brief (AGENT.md §3), the non-negotiable
+Bai-Tanaw is accepted when every check below passes. They follow the instructor's brief, the non-negotiable
 rules (§2) and the verification plan (§14). Each check is covered twice:
 
 - **Live:** `npm run acceptance` drives a running stack (API, worker, Postgres, Redis) end to end through the real API,
@@ -88,7 +88,7 @@ Paths: API tests are in `apps/api/src/routes/`, worker tests in `apps/worker/src
 
 These need a person and the real target:
 
-1. Full demo flow (AGENT.md §3, steps in [demo.md](demo.md)) against the local Bayaw Jobs (`wrangler dev`, registered as `http://host.docker.internal:8787`).
+1. Full demo flow (steps in [demo.md](demo.md)) against the local Bayaw Jobs (`wrangler dev`, registered as `http://host.docker.internal:8787`).
 2. One ZAP scan of the local Bayaw Jobs from the worker, with ALERT results (T4; the pipeline itself is verified).
 3. One real AI remediation ("Suggest fix") with the team's key; note tokens and cost (interpretation is already verified, X8).
 4. Report exported to PDF from Chrome and checked page by page.

@@ -1,4 +1,4 @@
-// Validates every environment variable the worker needs at startup (AGENT.md §9).
+// Validates every environment variable the worker needs at startup.
 
 import { parseAllowedHosts } from '@tanaw/shared';
 import { z } from 'zod';

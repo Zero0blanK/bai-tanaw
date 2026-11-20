@@ -1,7 +1,7 @@
 // OWASP ZAP through its daemon API (WSTG-CONF, passive checks). Flow:
 //   new session → context limited to the scan URL prefix → access URL → spider (context only, subtree only)
 //   → wait for passive scanning → Traditional JSON report → keep only in-scope sites/instances, redacted.
-// Active scanning (attacks) runs only when ZAP_ACTIVE_SCAN_ENABLED=true (instructor approval, AGENT.md §2.2).
+// Active scanning (attacks) runs only when ZAP_ACTIVE_SCAN_ENABLED=true (instructor approval).
 // The daemon is shared state, so runs are serialized with a simple in-process lock.
 
 import type { ScanResultInput } from '@tanaw/shared';

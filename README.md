@@ -27,11 +27,11 @@ output into findings, uses AI to explain them and suggest fixes, and leaves ever
 You need **Git**, **Node.js 22+** and **Docker Desktop** (running). Then, in PowerShell or a terminal:
 
 ```bash
-git clone <repo-url> tanaw
+git clone https://github.com/Zero0blanK/bai-tanaw.git
 ```
 
 ```bash
-cd tanaw
+cd bai-tanaw
 ```
 
 ```bash
@@ -63,7 +63,6 @@ reload, first steps after signing in, and fixes for common problems.
 | [docs/acceptance.md](docs/acceptance.md) | See what is tested and how to run the end-to-end checks |
 | [docs/tasks.md](docs/tasks.md) | Find the open work for each team role |
 | [docs/adr/](docs/adr/) | Read why key decisions were made |
-| [AGENT.md](AGENT.md) | See the full build plan, the rules and the current status |
 
 ## Ground rules
 

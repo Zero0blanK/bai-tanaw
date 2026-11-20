@@ -1,4 +1,4 @@
-/** Every API response uses this envelope (AGENT.md §6). */
+/** Every API response uses this envelope. */
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;

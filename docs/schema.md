@@ -5,7 +5,7 @@
 
 PostgreSQL 16 through Prisma 6. Every id is a UUID. Columns that point at a user (`created_by`, `started_by`,
 `assessor_id`, `actor_id`) are nullable foreign keys with `ON DELETE SET NULL`, so deleting a user keeps the history.
-Shapes of `scan_results.data` are in `packages/shared/src/schemas/scanResults.ts` (AGENT.md §7.4).
+Shapes of `scan_results.data` are in `packages/shared/src/schemas/scanResults.ts`.
 
 ## Tables
 

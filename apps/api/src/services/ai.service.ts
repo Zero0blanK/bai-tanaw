@@ -1,4 +1,4 @@
-// Queues the two AI features (AGENT.md §7.5). The worker does the calls; the API only checks that the call
+// Queues the two AI features. The worker does the calls; the API only checks that the call
 // can run (provider configured, input ready, under the daily cap) and records who asked.
 
 import { AUTO_INTERPRET_TOOLS, startOfManilaDay } from '@tanaw/shared';

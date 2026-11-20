@@ -1,6 +1,6 @@
 // Turns parsed scan results into candidate findings with fixed, explainable rules. Runs after every scan and
 // import (worker and API), so every scan shows up in Findings even without AI. Each candidate is created PENDING
-// with source TOOL; only an assessor confirms it (AGENT.md §2.5). The AI interpretation runs on top and is told
+// with source TOOL; only an assessor confirms it. The AI interpretation runs on top and is told
 // which findings already exist, so it adds what the rules can't see instead of repeating them.
 //
 // Each candidate also carries suggestions the assessor can accept: a CVSS v3.1 vector (Bai-Tanaw scores it, and the

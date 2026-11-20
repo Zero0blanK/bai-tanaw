@@ -5,7 +5,7 @@
 
 ## Context
 
-Phase 9 needed a host for the Docker Compose stack (AGENT.md §16.1). The options were a VPS, a school server, or the
+Phase 9 needed a host for the Docker Compose stack. The options were a VPS, a school server, or the
 presenting laptop. Things that mattered:
 
 - Bai-Tanaw holds evidence about a real application's weaknesses and can launch scans. A public deployment is itself an

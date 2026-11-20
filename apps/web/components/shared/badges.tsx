@@ -39,7 +39,7 @@ export function RunStatusBadge({ status }: { status: ScanStatus | JobStatus }) {
   return <Badge tone={SCAN_TONE[status]}>{humanize(status)}</Badge>;
 }
 
-/** Required by AGENT.md §10: AI output is never presented as a verified vulnerability. */
+/** AI output is never presented as a verified vulnerability. */
 export function AiUnverifiedBadge() {
   return (
     <Badge tone="purple" title="Suggested by AI from tool output. An assessor has not verified it yet.">

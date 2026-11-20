@@ -1,4 +1,4 @@
-// Scope enforcement: the safety core of Bai-Tanaw (AGENT.md §7.3).
+// Scope enforcement: the safety core of Bai-Tanaw.
 // Pure functions only, so the API and the worker run exactly the same checks.
 // The API/worker wrappers add audit logging and turn a failed check into a 403.
 
@@ -250,7 +250,7 @@ export function scopeRequestsForScan(tool: string, params: ScanParams): ScopeReq
   }
 }
 
-/** Nmap input guards (AGENT.md §7.4). Run before building the argument array. */
+/** Nmap input guards. Run before building the argument array. */
 export const NMAP_HOST_RE = /^[a-z0-9.-]+$/;
 export const NMAP_PORTS_RE = /^\d+(-\d+)?(,\d+(-\d+)?)*$/;
 

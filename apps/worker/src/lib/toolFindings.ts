@@ -50,7 +50,7 @@ export async function createToolFindings(tx: Tx, scan: ToolFindingScan, results:
         description: c.description,
         affected_asset: c.affected_asset.slice(0, 500),
         source: 'TOOL',
-        status: 'PENDING', // tools never set anything else (AGENT.md §7.2)
+        status: 'PENDING', // tools never set anything else
         ai_severity: c.severity, // the suggested severity; the assessor sets final_severity
         owasp_top10: c.owasp_top10,
         wstg_id: c.wstg_id,

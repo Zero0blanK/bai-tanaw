@@ -2,15 +2,15 @@
 
 Bai-Tanaw is deployed **local-only**: the whole stack runs in Docker on the presenting laptop and nothing is reachable
 from the network ([ADR 0002](adr/0002-local-only-deployment.md)). This page takes a clean machine to a working demo
-and walks the assessment flow from AGENT.md §3 against the local Bayaw Jobs.
+and walks the full assessment flow against the local Bayaw Jobs.
 
 ## 1. One-time setup
 
 Needs Docker Desktop, Node 22+ and git. Bayaw Jobs needs its own setup (`npm install`, `.dev.vars`) in its repo.
 
 ```bash
-git clone <repo-url> tanaw
-cd tanaw
+git clone https://github.com/Zero0blanK/bai-tanaw.git
+cd bai-tanaw
 npm install
 npm run env:init
 ```
@@ -67,7 +67,7 @@ on the network can't reach any of them.
 
 The demo never leaves the laptop: the browser talks to `localhost`, which browsers treat as a secure context. A TLS
 proxy would add a local CA to install and nothing to show. The HTTP check still grades Bayaw Jobs' own HTTPS setup
-against its real hosts once the instructor approves scanning them (AGENT.md §16.2).
+against its real hosts once the instructor approves scanning them.
 
 ## 3. Start the target
 
@@ -85,7 +85,7 @@ laptop, including to services that only listen on 127.0.0.1. No extra wrangler f
 
 Sign in as the assessor. Each step names the page and what to point out.
 
-| # | Phase (AGENT.md §3) | Do | Point out |
+| # | Phase | Do | Point out |
 |---|---|---|---|
 | 1 | Define scope | **Targets → New**: name "Bayaw Jobs (local)", base URL `http://host.docker.internal:8787`, authorization note, test window covering today | `https://example.com` is refused with 403: the allowlist |
 | 2 | | Scope rules: in-scope `PORT_RANGE 8787`; out-of-scope `URL http://host.docker.internal:8787/api/admin` | Scope tester: `/api/admin/users` → blocked, `/api/jobs` → allowed |

@@ -10,4 +10,4 @@
 | [tasks.md](tasks.md) | Open work per role, as tickets (roles only, never names) |
 | [adr/](adr/) | Decision records: [0001 separate platform](adr/0001-separate-platform.md), [0002 local-only deployment](adr/0002-local-only-deployment.md) |
 
-The build plan, rules and current status live in [AGENT.md](../AGENT.md).
+New here? Start with [setup.md](setup.md).

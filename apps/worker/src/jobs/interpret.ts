@@ -1,4 +1,4 @@
-// Feature 1: Interpreting scan results. The AI's findings become PENDING findings only (AGENT.md §2.5);
+// Feature 1: Interpreting scan results. The AI's findings become PENDING findings only;
 // only an assessor can confirm them. Analysis + findings + evidence are written in one transaction.
 
 import type { Prisma } from '@prisma/client';
@@ -113,7 +113,7 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
           description: item.explanation,
           affected_asset: item.affected_asset,
           source: 'AI',
-          status: 'PENDING', // never anything else from AI (AGENT.md §7.2)
+          status: 'PENDING', // never anything else from AI
           ai_severity: cvss.score !== null ? cvssSeverity(cvss.score) : item.suggested_severity,
           suggested_cvss_vector: cvss.vector,
           suggested_cvss_score: cvss.score,

@@ -4,7 +4,7 @@
 export const ROLES = ['ADMIN', 'ASSESSOR', 'VIEWER'] as const;
 export type Role = (typeof ROLES)[number];
 
-/** The three assessment categories chosen for the project (AGENT.md §3). */
+/** The three assessment categories chosen for the project. */
 export const FINDING_CATEGORIES = ['AUTHENTICATION', 'ACCESS_CONTROL', 'SECURITY_CONFIG'] as const;
 export type FindingCategory = (typeof FINDING_CATEGORIES)[number];
 

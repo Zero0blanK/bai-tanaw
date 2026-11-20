@@ -1,4 +1,4 @@
-// Builds the user message for every AI call (AGENT.md §7.5, OWASP LLM01/LLM02/LLM10):
+// Builds the user message for every AI call (OWASP LLM01/LLM02/LLM10):
 // redact → cap → hash → wrap the untrusted part in <tool_output> (after removing any such tags inside it).
 
 import { createHash } from 'node:crypto';

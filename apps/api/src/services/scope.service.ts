@@ -1,4 +1,4 @@
-// API-side wrapper around the shared scope logic (AGENT.md §7.3): same checks as the worker,
+// API-side wrapper around the shared scope logic: same checks as the worker,
 // plus the audit row and the 403 when something is blocked.
 
 import { checkScope, isHostAllowed, type ScopedTarget, type ScopeRequest } from '@tanaw/shared';
