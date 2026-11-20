@@ -168,6 +168,12 @@ export const StartScanBody = z.object({
   ports: portSpec.optional(),
 });
 
+/** Runs every tool against the target in one go. Optional overrides: start URL (HTTP check, ZAP) and Nmap ports. */
+export const RunAllScansBody = z.object({
+  url: httpUrl('url').optional(),
+  ports: portSpec.optional(),
+});
+
 export const ScanResultsQuery = paginationQuery.extend({
   type: z.enum(SCAN_RESULT_TYPES).optional(),
 });
@@ -233,6 +239,7 @@ export type UpdateTargetInput = z.infer<typeof UpdateTargetBody>;
 export type AddScopeRuleInput = z.infer<typeof AddScopeRuleBody>;
 export type ScopeCheckInput = z.infer<typeof ScopeCheckBody>;
 export type StartScanInput = z.infer<typeof StartScanBody>;
+export type RunAllScansInput = z.infer<typeof RunAllScansBody>;
 export type ListFindingsInput = z.infer<typeof ListFindingsQuery>;
 export type CreateFindingInput = z.infer<typeof CreateFindingBody>;
 export type VerifyFindingInput = z.infer<typeof VerifyFindingBody>;

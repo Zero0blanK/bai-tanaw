@@ -189,6 +189,8 @@ export interface ScanParams {
   host?: string;
   ports?: string;
   filename?: string;
+  /** Set when the scan is part of a "run all tools" assessment, shared by every scan of that run. */
+  batch_id?: string;
 }
 
 export const MAX_NMAP_PORTS = 1024;

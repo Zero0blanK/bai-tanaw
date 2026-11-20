@@ -82,3 +82,21 @@ export const TOOL_JOB_TYPE: Record<RunnableTool, JobType> = {
 
 /** BullMQ queue name shared by the API (producer) and the worker (consumer). */
 export const ASSESSMENT_QUEUE = 'tanaw-assessment';
+
+/** BullMQ attempts per job type. Tool runs are never retried (a second scan is noise on the target); AI calls retry once. */
+export const JOB_ATTEMPTS: Record<JobType, number> = {
+  RUN_CHECK: 1,
+  RUN_NMAP: 1,
+  RUN_ZAP: 1,
+  INTERPRET: 2,
+  REMEDIATE: 2,
+};
+
+const MANILA_OFFSET_MS = 8 * 3600 * 1000; // Asia/Manila is UTC+8 all year.
+
+/** Midnight today in Philippine time, as a UTC instant. The AI daily cap counts from here. */
+export function startOfManilaDay(now = new Date()): Date {
+  const local = new Date(now.getTime() + MANILA_OFFSET_MS);
+  local.setUTCHours(0, 0, 0, 0);
+  return new Date(local.getTime() - MANILA_OFFSET_MS);
+}

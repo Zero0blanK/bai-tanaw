@@ -1,6 +1,6 @@
 // BullMQ producer. The message carries only { jobId }; the `jobs` row holds type, ref_id and status.
 
-import { ASSESSMENT_QUEUE, type JobType, type QueueJobData } from '@tanaw/shared';
+import { ASSESSMENT_QUEUE, JOB_ATTEMPTS, type JobType, type QueueJobData } from '@tanaw/shared';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
@@ -16,15 +16,6 @@ function getQueue(): Queue<QueueJobData> {
   return queue;
 }
 
-/** Tool runs are not retried (a second scan is noise on the target); AI calls retry once (Phase 5). */
-const ATTEMPTS: Record<JobType, number> = {
-  RUN_CHECK: 1,
-  RUN_NMAP: 1,
-  RUN_ZAP: 1,
-  INTERPRET: 2,
-  REMEDIATE: 2,
-};
-
 /** Adds the job to Redis and returns BullMQ's id (we reuse our own job id). */
 export async function enqueue(type: JobType, jobId: string): Promise<string> {
   const job = await getQueue().add(
@@ -32,7 +23,7 @@ export async function enqueue(type: JobType, jobId: string): Promise<string> {
     { jobId },
     {
       jobId,
-      attempts: ATTEMPTS[type],
+      attempts: JOB_ATTEMPTS[type],
       backoff: { type: 'fixed', delay: 5_000 },
       removeOnComplete: { age: 7 * 24 * 3600, count: 1000 },
       removeOnFail: { age: 30 * 24 * 3600 },
