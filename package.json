@@ -15,6 +15,11 @@
   "scripts": {
     "infra:up": "docker compose up -d postgres redis zap",
     "infra:down": "docker compose down",
+    "env:init": "node scripts/init-env.mjs",
+    "demo:up": "docker compose --profile app up -d --build",
+    "demo:seed": "docker compose run --rm api node dist/scripts/seed.js",
+    "demo:logs": "docker compose --profile app logs -f api worker",
+    "demo:down": "docker compose --profile app down",
     "dev:api": "npm run dev --workspace @tanaw/api",
     "dev:worker": "npm run dev --workspace @tanaw/worker",
     "dev:web": "npm run dev --workspace @tanaw/web",

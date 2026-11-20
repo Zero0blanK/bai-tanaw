@@ -1,6 +1,7 @@
-# Tanaw local stack.
-#   Infrastructure only (works today):  docker compose up -d postgres redis zap
-#   Everything (after the apps exist):   docker compose --profile app up -d --build
+# Tanaw local stack (the demo runs on one machine; see docs/demo.md).
+#   Infrastructure only (for npm run dev:*):  docker compose up -d postgres redis zap
+#   Everything:                                docker compose --profile app up -d --build
+# Every published port is bound to 127.0.0.1, so nothing is reachable from the network.
 name: tanaw
 
 services:
@@ -12,7 +13,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       POSTGRES_DB: ${POSTGRES_DB:-tanaw}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,15 +25,23 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
 
   # OWASP ZAP in daemon mode. The worker drives it through the ZAP API (spider + passive scan).
-  # Bound to localhost only; never expose this port publicly.
+  # Published on 127.0.0.1 only (for the dev worker on the host); never expose it publicly.
+  # host.docker.internal lets it reach a target running on this machine (e.g. Bayaw Jobs via wrangler dev).
   zap:
     image: ghcr.io/zaproxy/zaproxy:stable
     restart: unless-stopped
+    environment:
+      # The image's own healthcheck probes $ZAP_PORT (8080 by default).
+      ZAP_PORT: 8090
     command: >
       zap.sh -daemon -host 0.0.0.0 -port 8090
       -config api.key=${ZAP_API_KEY:-change-me-zap-key}
@@ -40,8 +49,10 @@ services:
       -config api.addrs.addr.regex=true
     ports:
       - "127.0.0.1:8090:8090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  # ── Application services (enable with --profile app once they are built) ──
+  # ── Application services (enable with --profile app) ──
   api:
     profiles: ["app"]
     build:
@@ -50,18 +61,24 @@ services:
     env_file:
       - path: .env
         required: false
+    # These override .env: the containers always run as production with their own paths.
+    # Production refuses the example JWT secrets (run `npm run env:init` first).
     environment:
+      NODE_ENV: production
+      PORT: 4000
+      STORAGE_LOCAL_DIR: /app/storage
       DATABASE_URL: postgresql://${POSTGRES_USER:-tanaw}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-tanaw}
       REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     ports:
-      - "4000:4000"
+      - "127.0.0.1:${API_PORT:-4000}:4000"
     volumes:
       - storage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
 
   worker:
     profiles: ["app"]
@@ -72,16 +89,23 @@ services:
       - path: .env
         required: false
     environment:
+      NODE_ENV: production
+      NMAP_BIN: nmap
+      STORAGE_LOCAL_DIR: /app/storage
       DATABASE_URL: postgresql://${POSTGRES_USER:-tanaw}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-tanaw}
       REDIS_URL: redis://redis:6379
       ZAP_API_URL: http://zap:8090
+      # Ollama on the host, if used (AI_PROVIDER=ollama)
+      OLLAMA_URL: ${OLLAMA_DOCKER_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - storage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       zap:
         condition: service_started
 
@@ -93,9 +117,10 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:
