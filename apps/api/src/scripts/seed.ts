@@ -23,14 +23,14 @@ async function main(): Promise<void> {
   }
   const { SEED_ADMIN_EMAIL: email, SEED_ADMIN_PASSWORD: password, SEED_ADMIN_NAME: name } = parsed.data;
 
-  if (env.NODE_ENV === 'production' && password.startsWith('change-me')) {
-    throw new Error('Refusing to seed production with the example admin password. Set SEED_ADMIN_PASSWORD.');
-  }
-
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     logger.info('Admin already exists, nothing to do', { email });
     return;
+  }
+
+  if (env.NODE_ENV === 'production' && password.startsWith('change-me')) {
+    throw new Error('Refusing to seed production with the example admin password. Set SEED_ADMIN_PASSWORD.');
   }
 
   await prisma.user.create({
