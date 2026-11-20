@@ -1,4 +1,4 @@
-/** Tanaw's mark: a red square with a white lookout eye ("to watch over"). Swiss red, used nowhere decoratively. */
+/** Bai-Tanaw's mark: a red square with a white lookout eye ("to watch over"). Swiss red, used nowhere decoratively. */
 export function TanawMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>

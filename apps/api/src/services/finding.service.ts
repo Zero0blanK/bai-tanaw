@@ -27,7 +27,7 @@ export const FINDING_MESSAGES = {
   CVSS_MISMATCH: 'cvss_score does not match cvss_vector',
   ANALYSIS_NOT_FOUND: 'Remediation draft not found for this finding',
   RETEST_NEEDS_CONFIRMED: 'Only confirmed findings can be retested',
-  RETEST_MANUAL: 'This finding did not come from a tool run Tanaw can repeat; retest it by hand and attach evidence',
+  RETEST_MANUAL: 'This finding did not come from a tool run Bai-Tanaw can repeat; retest it by hand and attach evidence',
 } as const;
 
 /** The status machine (AGENT.md §7.2). Anything not listed is refused. */

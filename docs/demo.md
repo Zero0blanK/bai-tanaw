@@ -1,6 +1,6 @@
 # Local demo runbook
 
-Tanaw is deployed **local-only**: the whole stack runs in Docker on the presenting laptop and nothing is reachable
+Bai-Tanaw is deployed **local-only**: the whole stack runs in Docker on the presenting laptop and nothing is reachable
 from the network ([ADR 0002](adr/0002-local-only-deployment.md)). This page takes a clean machine to a working demo
 and walks the assessment flow from AGENT.md §3 against the local Bayaw Jobs.
 
@@ -25,7 +25,7 @@ provider key does **not** go in `.env`: you paste it into the app in step 2. The
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | The first admin. Read the password from `.env` for the first sign-in |
 | `WEB_PORT`, `CORS_ORIGIN` | Only if port 3000 is taken: e.g. `WEB_PORT=3100` and `CORS_ORIGIN=http://localhost:3100` |
 
-## 2. Start Tanaw
+## 2. Start Bai-Tanaw
 
 ```bash
 npm run demo:up
@@ -103,7 +103,7 @@ WSTG-ATHZ test done by hand with a test account). Use **Findings → New** and a
 
 ## 5. Check the stack (before presenting)
 
-With the stack up, the acceptance suite drives every feature through the API against Tanaw's own API as the target:
+With the stack up, the acceptance suite drives every feature through the API against Bai-Tanaw's own API as the target:
 
 ```bash
 ACCEPTANCE_TARGET_URL=http://host.docker.internal:4000 npm run acceptance

@@ -113,7 +113,7 @@ function AiSettingsCard() {
   async function removeKey() {
     const ok = await confirm({
       title: 'Remove the stored API key?',
-      body: 'Automatic AI interpretation and "Suggest fix" stop until a new key is saved. The encrypted key is deleted and cannot be recovered from Tanaw.',
+      body: 'Automatic AI interpretation and "Suggest fix" stop until a new key is saved. The encrypted key is deleted and cannot be recovered from Bai-Tanaw.',
       confirmLabel: 'Remove key',
       tone: 'danger',
     });

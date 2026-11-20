@@ -1,4 +1,4 @@
-# 0001: Tanaw is a separate platform, not a module inside Bayaw Jobs
+# 0001: Bai-Tanaw is a separate platform, not a module inside Bayaw Jobs
 
 - **Status:** accepted
 - **Date:** 2026-11-19
@@ -18,7 +18,7 @@ Bayaw Jobs runs on Cloudflare Workers with D1, R2 and Cloudflare Queues. Buildin
 
 ## Decision
 
-Build the assessment platform as its own system, **Tanaw**, with its own repository, database, users, roles and
+Build the assessment platform as its own system, **Bai-Tanaw**, with its own repository, database, users, roles and
 deployment. Bayaw Jobs becomes only the target, reached over the network like any other authorized host.
 
 Stack: Node 22 + TypeScript monorepo; Express 5 API; PostgreSQL 16 via Prisma; Redis + BullMQ for long jobs; a worker
@@ -28,9 +28,9 @@ the prototype (scope rules, tools, parsers, AI pipeline, verification) was porte
 ## Consequences
 
 - Nmap and ZAP run server-side in the worker; no scanner agent is needed.
-- Tanaw has its own accounts (ADMIN / ASSESSOR / VIEWER) with lockout, rotating refresh tokens and an audit log; the
-  target's demo accounts give no access to Tanaw.
+- Bai-Tanaw has its own accounts (ADMIN / ASSESSOR / VIEWER) with lockout, rotating refresh tokens and an audit log; the
+  target's demo accounts give no access to Bai-Tanaw.
 - Real foreign keys and transactions: verification and scan results are atomic, and deleting a user keeps history.
-- More to operate: Tanaw needs a host that can run Docker Compose (open decision in AGENT.md §16), its own secrets and
-  HTTPS. Tanaw must reach the target over the internet, so production scans depend on the instructor's written approval.
+- More to operate: Bai-Tanaw needs a host that can run Docker Compose (open decision in AGENT.md §16), its own secrets and
+  HTTPS. Bai-Tanaw must reach the target over the internet, so production scans depend on the instructor's written approval.
 - The prototype in the Bayaw Jobs repo stays as reference until the team decides what to do with it (AGENT.md §16).

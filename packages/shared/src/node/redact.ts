@@ -1,5 +1,5 @@
 // Strips secrets and personal data from text before it is stored as evidence or sent to an AI provider.
-// Pattern-based, so it can miss unusual formats: never put real user data into Tanaw.
+// Pattern-based, so it can miss unusual formats: never put real user data into Bai-Tanaw.
 
 const PATTERNS: Array<[RegExp, string]> = [
   // JSON Web Tokens

@@ -96,7 +96,7 @@ function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose
         <Field label="Email" htmlFor="u-email" required error={errors.email}>
           <Input id="u-email" name="email" type="email" autoComplete="off" placeholder="name@school.edu" required aria-invalid={Boolean(errors.email)} aria-describedby={fieldDescribedBy('u-email', { error: errors.email })} />
         </Field>
-        <Field label="Temporary password" htmlFor="u-password" required hint="12+ characters with upper and lower case, a digit and a symbol. Share it outside Tanaw." error={errors.password} className="sm:col-span-2">
+        <Field label="Temporary password" htmlFor="u-password" required hint="12+ characters with upper and lower case, a digit and a symbol. Share it outside Bai-Tanaw." error={errors.password} className="sm:col-span-2">
           <Input
             id="u-password"
             name="password"
@@ -243,7 +243,7 @@ export default function UsersPage() {
     <>
       <PageHeader
         title="Users & roles"
-        description="Who can sign in to Tanaw and what each role may do. Role changes and deactivation apply immediately."
+        description="Who can sign in to Bai-Tanaw and what each role may do. Role changes and deactivation apply immediately."
         actions={
           tab === 'users' && (
             <Button onClick={() => setCreating(true)}>

@@ -1,6 +1,6 @@
-# Tanaw
+# Bai-Tanaw
 
-**Tanaw** (Filipino: "to view, to watch over") is an AI-assisted security assessment and vulnerability analysis platform
+**Bai-Tanaw** (Filipino: "to view, to watch over") is an AI-assisted security assessment and vulnerability analysis platform
 built for the CS24 final project. It assesses an **authorized** web application (Bayaw Jobs), runs and imports security
 tool results, uses AI to explain results and suggest fixes, and keeps a human assessor in charge of what counts as a
 confirmed vulnerability.

@@ -1,4 +1,4 @@
-# 0002: Deploy Tanaw as a local-only Docker demo
+# 0002: Deploy Bai-Tanaw as a local-only Docker demo
 
 - **Status:** accepted
 - **Date:** 2026-11-20
@@ -8,7 +8,7 @@
 Phase 9 needed a host for the Docker Compose stack (AGENT.md §16.1). The options were a VPS, a school server, or the
 presenting laptop. Things that mattered:
 
-- Tanaw holds evidence about a real application's weaknesses and can launch scans. A public deployment is itself an
+- Bai-Tanaw holds evidence about a real application's weaknesses and can launch scans. A public deployment is itself an
   attack surface that would need hardening, monitoring and patching for the life of the project.
 - The only approved targets are the team's own Bayaw Jobs environments, and the demo runs against the local copy
   (`wrangler dev`) until the instructor approves scanning staging or production (§16.2).

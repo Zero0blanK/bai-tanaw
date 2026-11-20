@@ -19,7 +19,7 @@ export default function LoginPage() {
           <TanawMark className="h-9 w-9" />
           <span className="text-sm font-bold text-black">Security assessment platform</span>
         </div>
-        <h1 className="mt-auto font-display text-[clamp(5rem,11vw,10rem)] leading-[0.85] font-extrabold text-black">Tanaw</h1>
+        <h1 className="mt-auto font-display text-[clamp(3.5rem,7.5vw,7.5rem)] leading-[0.85] font-extrabold text-black">Bai-Tanaw</h1>
         <p className="mt-6 max-w-md text-lg leading-snug text-ink-700">To watch over one application, carefully: run the tools, let the AI read the output, and decide every finding yourself.</p>
         <ol className="mt-12 grid grid-cols-3 border-t-[3px] border-black">
           {RULES.map((r, i) => (
@@ -36,7 +36,7 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <TanawMark className="h-9 w-9" />
-            <span className="font-display text-3xl font-extrabold text-black">Tanaw</span>
+            <span className="font-display text-3xl font-extrabold text-black">Bai-Tanaw</span>
           </div>
           <h2 className="border-b-[3px] border-black pb-3 font-display text-4xl font-extrabold text-black">Sign in</h2>
           <p className="mt-3 text-sm text-ink-600">Use the account an admin created for you.</p>

@@ -24,13 +24,13 @@ deployment, evidence and the documents. Tickets already done are listed at the e
 
 | ID | Ticket | Size | Depends on | Done when |
 |---|---|---|---|---|
-| PL-1 | **Written approval for the target.** Ask the instructor to approve Bayaw Jobs (`bayawjobs.riomar.dev`, `bayawjobs-api.riomar.dev`) as the target, which environment (staging or production), and the testing window. | S | – | Approval attached under "Proof of authorization" in Deliverable 1; its date is in the target's authorization note in Tanaw. |
+| PL-1 | **Written approval for the target.** Ask the instructor to approve Bayaw Jobs (`bayawjobs.riomar.dev`, `bayawjobs-api.riomar.dev`) as the target, which environment (staging or production), and the testing window. | S | – | Approval attached under "Proof of authorization" in Deliverable 1; its date is in the target's authorization note in Bai-Tanaw. |
 | PL-2 | **Task board.** Turn every open ticket here into a board card with role label, size and dependencies. | S | – | Every open ticket ID exists on the board. |
 | PL-3 | **Assign owners.** | S | PL-2 | No unassigned ticket in the current milestone. |
 | PL-4 | **Branch and review rules.** Feature branches `feat/<ticket-id>-short-name` from `main`, PR back with one review from another role (AGENT.md §9). | S | – | Written in the README or a PR template; the first PR follows them. |
 | PL-5 | **Weekly milestone check** against the Project Timeline in Deliverable 1. | S (weekly) | PL-2 | A dated note per week. |
-| PL-6 | **Ethics check before each testing session.** Scope rules in Tanaw match the approval; only test accounts; ZAP active scan off. | S (each) | PL-1, ST-2 | A checklist entry per session (date, scope screenshot, who checked). |
-| PL-7 | **Rename the Google Doc deliverables to Tanaw** and update the architecture section (Docker, PostgreSQL, BullMQ instead of Workers, D1, Queues). Use [architecture.md](architecture.md) and [schema.md](schema.md). | M | – | No old name left; diagrams match architecture.md. |
+| PL-6 | **Ethics check before each testing session.** Scope rules in Bai-Tanaw match the approval; only test accounts; ZAP active scan off. | S (each) | PL-1, ST-2 | A checklist entry per session (date, scope screenshot, who checked). |
+| PL-7 | **Rename the Google Doc deliverables to Bai-Tanaw** and update the architecture section (Docker, PostgreSQL, BullMQ instead of Workers, D1, Queues). Use [architecture.md](architecture.md) and [schema.md](schema.md). | M | – | No old name left; diagrams match architecture.md. |
 | PL-8 | **Presentation and demo.** Slides, demo script (scope → recon → scan → AI → verify → report), member contributions, one full rehearsal on the live system. | M | FE-5, ST-8 | Rehearsal finished within the time limit. |
 
 ## Frontend developer (FE)
@@ -49,7 +49,7 @@ The UI is built (`apps/web`, AGENT.md §10). These tickets polish it for the dem
 
 | ID | Ticket | Size | Depends on | Done when |
 |---|---|---|---|---|
-| BE-2 | **Real ZAP run on Bayaw Jobs.** The ZAP pipeline already ran for real against Tanaw's own API (no alerts). Run one scan of the local Bayaw Jobs (`http://host.docker.internal:8787`, docs/demo.md). | S | – | ALERT results stored; the context kept the spider inside scope. |
+| BE-2 | **Real ZAP run on Bayaw Jobs.** The ZAP pipeline already ran for real against Bai-Tanaw's own API (no alerts). Run one scan of the local Bayaw Jobs (`http://host.docker.internal:8787`, docs/demo.md). | S | – | ALERT results stored; the context kept the spider inside scope. |
 | BE-3 | **Real AI smoke test.** Interpretation is verified (automatic runs with the team's OpenRouter key, 2026-11-20). Still: run "Suggest fix" on a real finding; record tokens and cost per call from `ai_analyses`. | S | AI-1 | Both features produce valid output; cost per call noted for AI-6. |
 | BE-4 | **OpenAPI docs at `/api/docs`.** Describe every endpoint in AGENT.md §8 and serve it with Scalar. | M | – | Every route appears with its request and response shapes. |
 | BE-5 | **Backups.** Back up the database and `storage/` before the demo (commands in docs/demo.md §6). | S | – | A restore has been tried once. |
@@ -68,10 +68,10 @@ Follow NIST SP 800-115 and OWASP WSTG v4.2. **Only in-scope hosts. Only test acc
 | ID | Ticket | Size | Depends on | Done when |
 |---|---|---|---|---|
 | ST-1 | **Test accounts on the target.** Applicant A and B, company A and B, an admin. Store credentials privately, never in docs or screenshots. | S | PL-1 | Each account can log in; the list is stored privately. |
-| ST-2 | **Scope in Tanaw.** Create the target and rules that match the approval (hosts, ports `80,443`, out-of-scope URLs, test window). | S | PL-1 | Evidence E-01 taken; the scope tester shows an out-of-scope URL blocked. |
-| ST-3 | **Recon.** DNS, HTTP check (frontend and API) and OpenAPI from Tanaw. | S | ST-2 | Scans DONE; evidence E-02, E-08. |
-| ST-4 | **Nmap.** Run from Tanaw (`80,443`), or locally and import. | S | ST-2 | PORT/SERVICE results; evidence E-03. |
-| ST-5 | **ZAP baseline.** Run from Tanaw or import a Traditional JSON report. | M | ST-2, BE-2 | ALERT results; evidence E-09. |
+| ST-2 | **Scope in Bai-Tanaw.** Create the target and rules that match the approval (hosts, ports `80,443`, out-of-scope URLs, test window). | S | PL-1 | Evidence E-01 taken; the scope tester shows an out-of-scope URL blocked. |
+| ST-3 | **Recon.** DNS, HTTP check (frontend and API) and OpenAPI from Bai-Tanaw. | S | ST-2 | Scans DONE; evidence E-02, E-08. |
+| ST-4 | **Nmap.** Run from Bai-Tanaw (`80,443`), or locally and import. | S | ST-2 | PORT/SERVICE results; evidence E-03. |
+| ST-5 | **ZAP baseline.** Run from Bai-Tanaw or import a Traditional JSON report. | M | ST-2, BE-2 | ALERT results; evidence E-09. |
 | ST-6 | **Authentication tests (WSTG-ATHN-01/03/04/07/09).** HTTPS-only login, lockout, OTP bypass attempts, password rules, reset-link reuse and expiry. Record each as a manual finding (or a "no issue" note) with evidence. | L | ST-1 | Evidence E-04, E-05. |
 | ST-7 | **Access control tests (WSTG-ATHZ-02/03/04).** From the OpenAPI list: applicant token on admin routes, company A editing company B's job, applicant A opening applicant B's data by changing IDs. | L | ST-1, ST-3 | Request/response evidence E-06, E-07. |
 | ST-8 | **Verify every candidate finding.** Reproduce, attach evidence, score with a CVSS v3.1 vector, set CONFIRMED / REJECTED / FALSE_POSITIVE with notes. | L | ST-3 … ST-7, AI-1 | No PENDING findings left before the report. |

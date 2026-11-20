@@ -220,7 +220,7 @@ describe.skipIf(!hasTestDb)('scans, jobs and imports', () => {
       expect(res.body.data.findings_created).toBe(2);
       const findings = await prisma.finding.findMany({ where: { target_id: id }, include: { evidence: true } });
       expect(findings.every((f) => f.source === 'TOOL' && f.status === 'PENDING' && f.evidence.length === 1)).toBe(true);
-      // Each comes with a suggested CVSS (scored by Tanaw) and ZAP's own solution as the suggested fix.
+      // Each comes with a suggested CVSS (scored by Bai-Tanaw) and ZAP's own solution as the suggested fix.
       expect(findings.every((f) => f.suggested_cvss_score !== null && f.suggested_cvss_vector?.startsWith('CVSS:3.1/') && (f.suggested_remediation ?? '').length > 0)).toBe(true);
       const again = await as(request(app).post(`/api/targets/${id}/imports/zap`)).attach('file', await sample('zap-local.json'), 'zap.json');
       expect(again.body.data).toMatchObject({ findings_created: 0, duplicates: 2 });

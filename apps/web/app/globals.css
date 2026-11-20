@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /*
- * Tanaw design tokens: Swiss Editorial, high-signal.
+ * Bai-Tanaw design tokens: Swiss Editorial, high-signal.
  *   Black type on white paper, neutral greys for everything structural, hairline rules instead of soft cards.
  *   Colour is signal only: red = critical/high and destructive, amber = waiting in the verification queue,
  *   green = fixed. "brand" is black, so primary actions and the active route read as type, not decoration.

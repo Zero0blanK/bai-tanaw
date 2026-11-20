@@ -1,4 +1,4 @@
-export const USER_AGENT = 'Tanaw/1.0 (CS24 authorized security assessment)';
+export const USER_AGENT = 'Bai-Tanaw/1.0 (CS24 authorized security assessment)';
 /** Per-request timeout for HTTP-based tools (HTTP check, OpenAPI). */
 export const HTTP_TIMEOUT_MS = 15_000;
 

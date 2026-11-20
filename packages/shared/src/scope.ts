@@ -1,4 +1,4 @@
-// Scope enforcement: the safety core of Tanaw (AGENT.md §7.3).
+// Scope enforcement: the safety core of Bai-Tanaw (AGENT.md §7.3).
 // Pure functions only, so the API and the worker run exactly the same checks.
 // The API/worker wrappers add audit logging and turn a failed check into a 403.
 

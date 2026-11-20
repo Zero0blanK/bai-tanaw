@@ -1,4 +1,4 @@
-# Tanaw local stack (the demo runs on one machine; see docs/demo.md).
+# Bai-Tanaw local stack (the demo runs on one machine; see docs/demo.md).
 #   Infrastructure only (for npm run dev:*):  docker compose up -d postgres redis zap
 #   Everything:                                docker compose --profile app up -d --build
 # Every published port is bound to 127.0.0.1, so nothing is reachable from the network.

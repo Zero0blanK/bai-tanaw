@@ -12,7 +12,7 @@ import { hashPassword } from '../utils/crypto.js';
 const SeedEnv = z.object({
   SEED_ADMIN_EMAIL: z.email().trim().toLowerCase(),
   SEED_ADMIN_PASSWORD: passwordSchema,
-  SEED_ADMIN_NAME: z.string().trim().min(2).default('Tanaw Admin'),
+  SEED_ADMIN_NAME: z.string().trim().min(2).default('Bai-Tanaw Admin'),
 });
 
 async function main(): Promise<void> {

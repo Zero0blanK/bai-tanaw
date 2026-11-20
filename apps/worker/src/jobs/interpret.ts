@@ -97,7 +97,7 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
         continue;
       }
       knownTitles.add(normalized);
-      // Suggestions: the AI's vector only if Tanaw can score it (then the severity follows the score), and CVEs only
+      // Suggestions: the AI's vector only if Bai-Tanaw can score it (then the severity follows the score), and CVEs only
       // from the cited tool output, never from the AI's own text.
       const cvss = checkSuggestedVector(item.cvss_vector);
       const citedData = [...new Set(item.evidence_refs.map((r) => r.trim().toLowerCase()))].flatMap((ref) => {

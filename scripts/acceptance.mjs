@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// Tanaw acceptance checks (docs/acceptance.md): drives a RUNNING stack (API + worker + Postgres + Redis)
-// end to end through the real HTTP API, like the demo. It only contacts Tanaw's own API (as the scan target)
+// Bai-Tanaw acceptance checks (docs/acceptance.md): drives a RUNNING stack (API + worker + Postgres + Redis)
+// end to end through the real HTTP API, like the demo. It only contacts Bai-Tanaw's own API (as the scan target)
 // and never any external host.
 //
 //   npm run acceptance                      # uses API_URL / SEED_ADMIN_* from the root .env
 //   API_URL=http://localhost:4000 npm run acceptance
 //   ACCEPTANCE_TARGET_URL=http://host.docker.internal:4000 npm run acceptance   # Docker stack (docs/demo.md)
 //
-// The scan target is Tanaw's own API: API_URL's origin, or ACCEPTANCE_TARGET_URL when the worker reaches the API
+// The scan target is Bai-Tanaw's own API: API_URL's origin, or ACCEPTANCE_TARGET_URL when the worker reaches the API
 // by another name (inside Docker, `localhost` is the worker container itself).
 // Needs the target's host (`localhost`, or `host.docker.internal` for Docker) in ASSESSMENT_ALLOWED_HOSTS. Creates two throwaway users (deleted at the end) and two targets
 // named "Acceptance <timestamp>" (targets can't be deleted; they stay as a record).
@@ -19,7 +19,7 @@ const envFile = new URL('.env', root);
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 const API = `${(process.env.API_URL ?? 'http://localhost:4000').replace(/\/$/, '')}/api`;
-const SELF = new URL(process.env.ACCEPTANCE_TARGET_URL ?? API).origin; // Tanaw's own API is the scan target
+const SELF = new URL(process.env.ACCEPTANCE_TARGET_URL ?? API).origin; // Bai-Tanaw's own API is the scan target
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const results = [];
 const cleanup = [];
@@ -104,7 +104,7 @@ function fileForm(blob, filename, fields = {}) {
 // ─── the checks ──────────────────────────────────────────────────────────────
 
 async function main() {
-  process.stdout.write(`Tanaw acceptance checks against ${API}\n\n`);
+  process.stdout.write(`Bai-Tanaw acceptance checks against ${API}\n\n`);
   const ctx = {};
 
   // 1. Access control and authentication
@@ -143,10 +143,10 @@ async function main() {
   await check('S1', 'A host off the allowlist cannot be registered (403)', async () => {
     status(await call('POST', '/targets', { token: ctx.assessor, body: { name: 'Not ours', base_url: 'https://example.com' } }), 403);
   });
-  await check('S2', "Register Tanaw's own API as the target", async () => {
+  await check('S2', "Register Bai-Tanaw's own API as the target", async () => {
     const res = await call('POST', '/targets', {
       token: ctx.assessor,
-      body: { name: `Acceptance ${stamp}`, base_url: SELF, authorization_note: 'Automated acceptance run against Tanaw itself.' },
+      body: { name: `Acceptance ${stamp}`, base_url: SELF, authorization_note: 'Automated acceptance run against Bai-Tanaw itself.' },
     });
     if (res.status === 403) throw new Error(`${new URL(SELF).hostname} is not in ASSESSMENT_ALLOWED_HOSTS`);
     ctx.target = status(res, 201).body.data;
@@ -257,7 +257,7 @@ async function main() {
     if (res.status === 503) return '503, AI not configured (expected until an admin saves a key in Settings)';
     status(res, 202);
     const job = await waitForJob(ctx.assessor, res.body.data.job.id, 120_000);
-    // A rate-limited or down provider is the provider's state, not Tanaw's: report it, don't fail the run.
+    // A rate-limited or down provider is the provider's state, not Bai-Tanaw's: report it, don't fail the run.
     if (job.status === 'FAILED' && /returned HTTP (429|5\d\d)/.test(job.failed_reason ?? '')) return { skip: `provider unavailable: ${job.failed_reason}` };
     expect(job.status === 'COMPLETED', `AI job ${job.status}: ${job.failed_reason}`);
     const findings = status(await call('GET', `/findings?target_id=${ctx.target.id}&source=AI`, { token: ctx.assessor }), 200).body.data;
@@ -315,7 +315,7 @@ async function main() {
     await check('F6', 'Viewer cannot verify (403)', async () => {
       status(await verify(f, { status: 'REJECTED', notes: 'Viewer trying.' }, ctx.viewer), 403);
     });
-    await check('F7', 'Confirm with a CVSS v3.1 vector; Tanaw computes the score', async () => {
+    await check('F7', 'Confirm with a CVSS v3.1 vector; Bai-Tanaw computes the score', async () => {
       const res = status(
         await verify(f, { status: 'CONFIRMED', notes: 'Reproduced with curl -i.', final_severity: 'LOW', cvss_vector: 'CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:N/I:L/A:N' }),
         200,

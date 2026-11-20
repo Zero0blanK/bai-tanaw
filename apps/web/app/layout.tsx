@@ -11,7 +11,7 @@ import './globals.css';
 const archivo = Archivo({ subsets: ['latin'], variable: '--font-archivo', display: 'swap', axes: ['wdth'] });
 
 export const metadata: Metadata = {
-  title: { default: 'Tanaw', template: '%s · Tanaw' },
+  title: { default: 'Bai-Tanaw', template: '%s · Bai-Tanaw' },
   description: 'AI-assisted security assessment and vulnerability analysis',
   robots: { index: false, follow: false },
 };

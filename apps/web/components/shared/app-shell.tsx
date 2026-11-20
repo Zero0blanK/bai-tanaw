@@ -215,8 +215,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const brand = (compact: boolean) => (
     <Link href="/dashboard" className={cn('flex h-[var(--spacing-topbar)] shrink-0 items-center gap-2.5 border-b-[3px] border-black text-black', compact ? 'justify-center px-0' : 'px-4')}>
       <TanawMark className="h-7 w-7 shrink-0" />
-      {!compact && <span className="font-display text-2xl font-extrabold">Tanaw</span>}
-      {compact && <span className="sr-only">Tanaw dashboard</span>}
+      {!compact && <span className="font-display text-2xl font-extrabold">Bai-Tanaw</span>}
+      {compact && <span className="sr-only">Bai-Tanaw dashboard</span>}
     </Link>
   );
 

@@ -141,6 +141,6 @@ export function errorMessage(error: unknown): string {
     const details = error.errors?.map((e) => (e.path ? `${e.path}: ${e.message}` : e.message)).join('; ');
     return details ? `${error.message} (${details})` : error.message;
   }
-  if (error instanceof TypeError) return 'Cannot reach the Tanaw API. Is it running?';
+  if (error instanceof TypeError) return 'Cannot reach the Bai-Tanaw API. Is it running?';
   return error instanceof Error ? error.message : 'Something went wrong';
 }

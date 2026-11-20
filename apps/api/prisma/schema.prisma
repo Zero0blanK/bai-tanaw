@@ -1,4 +1,4 @@
-// Tanaw database schema (PostgreSQL). Enum values mirror packages/shared/src/enums: change both together.
+// Bai-Tanaw database schema (PostgreSQL). Enum values mirror packages/shared/src/enums: change both together.
 // Actor columns (created_by, started_by, assessor_id, ...) are real FKs to users with onDelete: SetNull,
 // so deleting a user keeps the assessment and audit history.
 // docs/schema.md documents every table; update it in the same commit as this file.
@@ -255,7 +255,7 @@ model Finding {
   /// Filled automatically when the finding is raised (tool rule, ZAP solution or the AI). A suggestion only:
   /// `remediation` changes when an assessor accepts or edits it.
   suggested_remediation String?
-  /// CVSS v3.1 vector suggested when the finding is raised (tool rule or AI); Tanaw computes the score itself.
+  /// CVSS v3.1 vector suggested when the finding is raised (tool rule or AI); Bai-Tanaw computes the score itself.
   /// The assessor's confirmed values are `cvss_vector` / `cvss_score`.
   suggested_cvss_vector String?
   suggested_cvss_score  Float?

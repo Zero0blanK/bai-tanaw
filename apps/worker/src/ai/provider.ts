@@ -97,7 +97,7 @@ async function callChatCompletions(
       authorization: `Bearer ${cfg.apiKey}`,
       'content-type': 'application/json',
       // OpenRouter shows this app name on its dashboard; it carries no user data.
-      ...(provider === 'openrouter' ? { 'x-title': 'Tanaw' } : {}),
+      ...(provider === 'openrouter' ? { 'x-title': 'Bai-Tanaw' } : {}),
     },
     signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     body: JSON.stringify({

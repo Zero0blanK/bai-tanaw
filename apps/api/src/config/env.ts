@@ -8,7 +8,7 @@ const duration = z.string().regex(/^\d+[smhd]$/, 'must look like 15m, 7d, 3600s'
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  APP_NAME: z.string().default('Tanaw'),
+  APP_NAME: z.string().default('Bai-Tanaw'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   WEB_URL: z.url().default('http://localhost:3000'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),

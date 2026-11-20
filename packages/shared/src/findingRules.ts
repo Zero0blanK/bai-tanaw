@@ -3,7 +3,7 @@
 // with source TOOL; only an assessor confirms it (AGENT.md §2.5). The AI interpretation runs on top and is told
 // which findings already exist, so it adds what the rules can't see instead of repeating them.
 //
-// Each candidate also carries suggestions the assessor can accept: a CVSS v3.1 vector (Tanaw scores it, and the
+// Each candidate also carries suggestions the assessor can accept: a CVSS v3.1 vector (Bai-Tanaw scores it, and the
 // suggested severity is derived from that score so the two never disagree), the fix text, and any CVE IDs that
 // appear in the tool output behind it. Nothing here invents a CVE.
 //
@@ -425,7 +425,7 @@ export function normalizeFindingTitle(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-/** A CVSS v3.1 vector the AI suggested, kept only if Tanaw can score it. Returns the vector and score, or nulls. */
+/** A CVSS v3.1 vector the AI suggested, kept only if Bai-Tanaw can score it. Returns the vector and score, or nulls. */
 export function checkSuggestedVector(vector: string | null | undefined): { vector: string | null; score: number | null } {
   const v = vector?.trim();
   if (!v) return { vector: null, score: null };

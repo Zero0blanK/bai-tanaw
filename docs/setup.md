@@ -1,9 +1,9 @@
 # Setup
 
-How to run Tanaw on your machine, with every setting explained. For how the parts fit together, see
+How to run Bai-Tanaw on your machine, with every setting explained. For how the parts fit together, see
 [architecture.md](architecture.md).
 
-> Tanaw scans real systems. Only add hosts you have **written permission** to test to `ASSESSMENT_ALLOWED_HOSTS`,
+> Bai-Tanaw scans real systems. Only add hosts you have **written permission** to test to `ASSESSMENT_ALLOWED_HOSTS`,
 > and use test accounts and synthetic data only.
 
 ## 1. Prerequisites
@@ -62,7 +62,7 @@ logs, screenshots or chat.
 | Variable | Used by | Required | Example | Meaning |
 |---|---|---|---|---|
 | `NODE_ENV` | all | no | `development` | `production` enables strict secret checks and `Secure` cookies |
-| `APP_NAME` | api | no | `Tanaw` | Shown in the health check |
+| `APP_NAME` | api | no | `Bai-Tanaw` | Shown in the health check |
 | `WEB_URL` | api | no | `http://localhost:3000` | Public URL of the web app |
 | `API_URL` | docs only | no | `http://localhost:4000` | Public URL of the API |
 | `PORT` | api | no | `4000` | API port |

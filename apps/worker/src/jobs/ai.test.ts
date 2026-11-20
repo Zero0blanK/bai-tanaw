@@ -72,7 +72,7 @@ describe.skipIf(!hasTestDb)('AI jobs', () => {
     expect(done.result).toMatchObject({ analysis_id: analysis.id, findings_created: 1, ignored_refs: ['r99'] });
   });
 
-  it('INTERPRET stores the suggested CVSS (scored by Tanaw), the fix, and CVEs only from cited tool output', async () => {
+  it('INTERPRET stores the suggested CVSS (scored by Bai-Tanaw), the fix, and CVEs only from cited tool output', async () => {
     const { user, scan } = await seed();
     const cveResult = await prisma.scanResult.create({
       data: { scan_id: scan.id, type: 'HEADER', data: { check: 'disclosure_header', url: 'https://bayawjobs.riomar.dev', header: 'server', value: 'nginx/1.18.0 (see CVE-2021-23017)' } },

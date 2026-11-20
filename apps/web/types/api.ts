@@ -1,4 +1,4 @@
-// Response shapes from the Tanaw API (apps/api). Enum unions come from @tanaw/shared.
+// Response shapes from the Bai-Tanaw API (apps/api). Enum unions come from @tanaw/shared.
 
 import type {
   AiTask,

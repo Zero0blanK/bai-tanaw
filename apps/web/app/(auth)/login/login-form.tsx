@@ -27,7 +27,7 @@ export function LoginForm() {
     if (!parsed.success) {
       const byField = issuesByField(parsed.error.issues);
       setFieldErrors({
-        ...(byField.email ? { email: 'Enter the email address of your Tanaw account' } : {}),
+        ...(byField.email ? { email: 'Enter the email address of your Bai-Tanaw account' } : {}),
         ...(byField.password ? { password: 'Enter your password' } : {}),
       });
       return;

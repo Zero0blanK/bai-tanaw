@@ -1,10 +1,10 @@
 # Acceptance checks
 
-Tanaw is accepted when every check below passes. They follow the instructor's brief (AGENT.md §3), the non-negotiable
+Bai-Tanaw is accepted when every check below passes. They follow the instructor's brief (AGENT.md §3), the non-negotiable
 rules (§2) and the verification plan (§14). Each check is covered twice:
 
 - **Live:** `npm run acceptance` drives a running stack (API, worker, Postgres, Redis) end to end through the real API,
-  like the demo. The only scan target it uses is Tanaw's own API, so it contacts nothing outside your machine.
+  like the demo. The only scan target it uses is Bai-Tanaw's own API, so it contacts nothing outside your machine.
   It needs `localhost` in `ASSESSMENT_ALLOWED_HOSTS` and the seeded admin in `.env`. It creates two throwaway users
   (deleted at the end) and two targets named `Acceptance <timestamp>`.
 - **Automated:** `npm test` runs unit and API tests (Vitest + Supertest against `TEST_DATABASE_URL`), including the
@@ -46,7 +46,7 @@ provider rejects with HTTP 429/5xx (e.g. a rate-limited free model) is reported 
 | T3 | Nmap service detection (fixed safe arguments, validated input) | ✓ (needs Nmap) | `tools.test.ts`; verified in the worker image |
 | T6 | A finished scan becomes PENDING tool findings (rules, de-duplicated) and queues the AI automatically | ✓ | `findingRules.test.ts`, `processJob.test.ts`, `autoInterpret.test.ts`, `scan.test.ts` (imports) |
 | T7 | "Run full assessment" queues every tool as one run; out-of-scope tools are skipped and audited | ✓ | `scan.test.ts` |
-| T4 | ZAP spider + passive scan inside a scope context, only in-scope alerts kept, redacted | – | `tools.test.ts` (fake ZAP API). Real run 2026-11-20: ZAP 2.17 container via the worker against Tanaw's own API, completed with no alerts (expected for that API). **Still to do: a run against Bayaw Jobs that produces alerts.** |
+| T4 | ZAP spider + passive scan inside a scope context, only in-scope alerts kept, redacted | – | `tools.test.ts` (fake ZAP API). Real run 2026-11-20: ZAP 2.17 container via the worker against Bai-Tanaw's own API, completed with no alerts (expected for that API). **Still to do: a run against Bayaw Jobs that produces alerts.** |
 | T5 | OpenAPI endpoint listing | – | `tools.test.ts` |
 | T6 | If Redis is down, scans answer `503` and are marked FAILED | – | `scan.test.ts` |
 | **Imports** | | | |

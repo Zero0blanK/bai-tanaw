@@ -1,4 +1,4 @@
-// Every enum Tanaw uses, as readonly tuples (for Zod and Prisma parity) plus a union type.
+// Every enum Bai-Tanaw uses, as readonly tuples (for Zod and Prisma parity) plus a union type.
 // The Prisma schema in apps/api mirrors these values exactly; change both together.
 
 export const ROLES = ['ADMIN', 'ASSESSOR', 'VIEWER'] as const;

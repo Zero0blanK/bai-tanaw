@@ -16,7 +16,7 @@ export const InterpretFindingSchema = z.object({
   suggested_severity: z.enum(SEVERITIES),
   owasp_top10: z.string().max(80),
   wstg_id: z.string().max(40),
-  /** A CVSS v3.1 base vector, or "" when the output doesn't support one. Tanaw re-scores it and drops invalid ones. */
+  /** A CVSS v3.1 base vector, or "" when the output doesn't support one. Bai-Tanaw re-scores it and drops invalid ones. */
   cvss_vector: z.string().max(80).default(''),
   /** A short, concrete fix for this application. Stored as a suggestion only. */
   remediation: z.string().max(2000).default(''),

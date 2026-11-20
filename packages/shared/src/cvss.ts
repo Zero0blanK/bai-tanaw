@@ -37,7 +37,7 @@ export function cvss31BaseScore(vector: string): number | null {
   return changed ? roundUp(Math.min(1.08 * (impact + exploitability), 10)) : roundUp(Math.min(impact + exploitability, 10));
 }
 
-/** Qualitative rating (CVSS v3.1 table 14). 0.0 maps to INFO, Tanaw's "None". */
+/** Qualitative rating (CVSS v3.1 table 14). 0.0 maps to INFO, Bai-Tanaw's "None". */
 export function cvssSeverity(score: number): Severity {
   if (score >= 9) return 'CRITICAL';
   if (score >= 7) return 'HIGH';

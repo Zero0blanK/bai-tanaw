@@ -92,7 +92,7 @@ describe('askJson', () => {
     const req = requests[0];
     expect(req?.url).toBe('https://openrouter.ai/api/v1/chat/completions');
     expect(req?.headers.get('authorization')).toBe('Bearer sk-or-v1-test-not-real-0000');
-    expect(req?.headers.get('x-title')).toBe('Tanaw');
+    expect(req?.headers.get('x-title')).toBe('Bai-Tanaw');
     expect(req?.body).toMatchObject({
       model: 'openai/gpt-4.1-mini',
       provider: { require_parameters: true },
