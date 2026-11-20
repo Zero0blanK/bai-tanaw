@@ -3,9 +3,12 @@ import { Sparkles } from 'lucide-react';
 import { Badge, type Tone } from '@/components/ui/badge';
 import { humanize } from '@/lib/utils';
 
-export const SEVERITY_TONE: Record<Severity, Tone> = { CRITICAL: 'red', HIGH: 'orange', MEDIUM: 'amber', LOW: 'blue', INFO: 'slate' };
-/** Chart colors per severity (same order of intensity as the badges). */
-export const SEVERITY_COLOR: Record<Severity, string> = { CRITICAL: '#b91c1c', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#2563eb', INFO: '#64748b' };
+export const SEVERITY_TONE: Record<Severity, Tone> = { CRITICAL: 'red', HIGH: 'red', MEDIUM: 'orange', LOW: 'slate', INFO: 'slate' };
+/**
+ * Severity markers: the signal fades with the severity. Critical and high are red, medium orange, low and info
+ * grey, so the eye goes to what matters first. Labels always accompany the colour.
+ */
+export const SEVERITY_COLOR: Record<Severity, string> = { CRITICAL: '#8f1209', HIGH: '#d52b1e', MEDIUM: '#e8871e', LOW: '#63635f', INFO: '#b8b8b3' };
 export const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
 
 const STATUS_TONE: Record<FindingStatus, Tone> = { PENDING: 'amber', CONFIRMED: 'red', REJECTED: 'slate', FALSE_POSITIVE: 'slate', FIXED: 'green' };
@@ -20,10 +23,11 @@ export const CATEGORY_LABEL: Record<FindingCategory, string> = {
 export function SeverityBadge({ severity, prefix }: { severity: Severity | null | undefined; prefix?: string }) {
   if (!severity) return <span className="text-xs text-ink-400">-</span>;
   return (
-    <Badge tone={SEVERITY_TONE[severity]}>
-      {prefix}
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-bold text-black">
+      <span aria-hidden className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: SEVERITY_COLOR[severity] }} />
+      {prefix && <span className="font-medium text-ink-500">{prefix}</span>}
       {humanize(severity)}
-    </Badge>
+    </span>
   );
 }
 

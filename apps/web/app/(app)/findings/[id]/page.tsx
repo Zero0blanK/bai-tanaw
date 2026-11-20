@@ -3,11 +3,11 @@
 import { RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SeverityBadge, SourceBadge } from '@/components/shared/badges';
 import { useAuth } from '@/components/shared/auth-provider';
 import { JobBanner } from '@/components/shared/job-banner';
-import { DetailList, PageHeader } from '@/components/shared/page';
+import { PageHeader } from '@/components/shared/page';
 import { EvidencePanel } from '@/components/findings/evidence-panel';
 import { RemediationPanel } from '@/components/findings/remediation-panel';
 import { VerifyForm } from '@/components/findings/verify-form';
@@ -53,8 +53,12 @@ export default function FindingDetailPage() {
         description={
           <span className="flex flex-wrap items-center gap-2">
             <FindingStatusBadge status={f.status} />
-            <SourceBadge source={f.source} />
-            {f.source === 'AI' && f.status === 'PENDING' && <AiUnverifiedBadge />}
+            {f.source === 'AI' && f.status === 'PENDING' ? <AiUnverifiedBadge /> : <SourceBadge source={f.source} />}
+            {f.target && (
+              <Link href={`/targets/${f.target.id}`} className="text-sm font-semibold text-black underline underline-offset-4">
+                {f.target.name}
+              </Link>
+            )}
           </span>
         }
         actions={
@@ -67,67 +71,92 @@ export default function FindingDetailPage() {
           )
         }
       />
-      <div className="space-y-6">
-        {retestError && <Alert kind="warning">{retestError}</Alert>}
-        {retest && (
-          <div className="space-y-2">
-            <JobBanner jobId={retest.jobId} label="Retest scan" />
-            <p className="text-sm">
-              <Link href={`/scans/${retest.scanId}`} className="text-brand-700 underline">
-                Open the retest scan
-              </Link>{' '}
-              and compare it with the original before marking the finding fixed.
+      {retestError && <Alert kind="warning" className="mb-6">{retestError}</Alert>}
+      {retest && (
+        <div className="mb-6 space-y-2">
+          <JobBanner jobId={retest.jobId} label="Retest scan" />
+          <p className="text-sm">
+            <Link href={`/scans/${retest.scanId}`} className="font-bold text-black underline underline-offset-4">
+              Open the retest scan
+            </Link>{' '}
+            and compare it with the original before marking the finding fixed.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        <div className="min-w-0 space-y-8 lg:col-span-8">
+          <section aria-labelledby="found">
+            <h2 id="found" className="border-b-2 border-black pb-2 text-base font-bold text-black">
+              What was found
+            </h2>
+            <p className="mt-4 max-w-prose text-[15px] leading-relaxed whitespace-pre-wrap text-ink-800">{f.description}</p>
+            <p className="mt-4 text-sm break-all text-ink-600">
+              <span className="font-bold text-black">Affected asset</span> {f.affected_asset}
             </p>
+          </section>
+
+          <EvidencePanel findingId={f.id} evidence={f.evidence} canEdit={canEdit} onAdded={reload} />
+
+          <RemediationPanel key={f.remediation ?? ''} finding={f} canEdit={canEdit} onSaved={reload} />
+
+          <Card>
+            <CardHeader title="Decision history" description="Every status change, who made it and why. Kept in the report." />
+            {f.verification_logs.length === 0 ? (
+              <Empty title="No decisions yet" />
+            ) : (
+              <ol className="border-t border-black px-5">
+                {f.verification_logs.map((l) => (
+                  <li key={l.id} className="border-b border-ink-200 py-3 text-sm last:border-b-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <FindingStatusBadge status={l.old_status} />
+                      <span aria-hidden>→</span>
+                      <span className="sr-only">to</span>
+                      <FindingStatusBadge status={l.new_status} />
+                      <span className="text-xs text-ink-500">
+                        {l.assessor?.name ?? 'deleted user'}, {formatDateTime(l.created_at)}
+                      </span>
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-ink-700">{l.notes}</p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+        </div>
+
+        <aside className="space-y-6 lg:col-span-4">
+          <div className="lg:sticky lg:top-[calc(var(--spacing-topbar)+1.5rem)] lg:space-y-6">
+            <Card>
+              <CardHeader title="Facts" />
+              <CardBody>
+                <dl className="divide-y divide-ink-200 border-t border-black text-sm">
+                  {(
+                    [
+                      ['Final severity', <SeverityBadge key="fs" severity={f.final_severity} />],
+                      ['Suggested', <SeverityBadge key="as" severity={f.ai_severity} />],
+                      ['CVSS v3.1', f.cvss_score !== null ? <span key="c"><span className="font-bold tabular-nums text-black">{f.cvss_score}</span> <span className="block font-mono text-[11px] break-all text-ink-500">{f.cvss_vector}</span></span> : '-'],
+                      ['Category', CATEGORY_LABEL[f.category]],
+                      ['OWASP / WSTG', [f.owasp_top10, f.wstg_id].filter(Boolean).join(' / ') || '-'],
+                      ['From scan', f.scan ? <Link key="s" href={`/scans/${f.scan.id}`} className="font-semibold text-black underline underline-offset-4">{humanize(f.scan.tool)}</Link> : 'Manual'],
+                      ['Raised', formatDateTime(f.created_at)],
+                    ] as Array<[string, ReactNode]>
+                  ).map(([k, v]) => (
+                    <div key={k} className="grid grid-cols-[7rem_1fr] gap-3 py-2">
+                      <dt className="font-bold text-black">{k}</dt>
+                      <dd className="min-w-0 text-ink-700">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardBody>
+            </Card>
+            {canEdit && (
+              <div id="verify" className="scroll-mt-24">
+                <VerifyForm key={f.status} finding={f} onSaved={reload} />
+              </div>
+            )}
           </div>
-        )}
-
-        <Card>
-          <CardBody className="space-y-4">
-            <DetailList
-              items={[
-                ['Category', CATEGORY_LABEL[f.category]],
-                ['Affected asset', <span key="a" className="font-mono text-xs">{f.affected_asset}</span>],
-                ['Final severity', <SeverityBadge key="fs" severity={f.final_severity} />],
-                ['Suggested severity', <SeverityBadge key="as" severity={f.ai_severity} />],
-                ['CVSS v3.1', f.cvss_score !== null ? <span key="c">{f.cvss_score} <span className="font-mono text-xs text-ink-500">{f.cvss_vector}</span></span> : '-'],
-                ['OWASP Top 10 / WSTG', [f.owasp_top10, f.wstg_id].filter(Boolean).join(' · ') || '-'],
-                ['From scan', f.scan ? <Link key="s" href={`/scans/${f.scan.id}`} className="text-brand-700 hover:underline">{humanize(f.scan.tool)} ({formatDateTime(f.scan.created_at)})</Link> : 'Manual'],
-                ['Created', formatDateTime(f.created_at)],
-              ]}
-            />
-            <div>
-              <p className="text-xs font-medium text-ink-500">Description</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-ink-800">{f.description}</p>
-            </div>
-          </CardBody>
-        </Card>
-
-        {canEdit && <VerifyForm key={f.status} finding={f} onSaved={reload} />}
-
-        <EvidencePanel findingId={f.id} evidence={f.evidence} canEdit={canEdit} onAdded={reload} />
-
-        <RemediationPanel key={f.remediation ?? ''} finding={f} canEdit={canEdit} onSaved={reload} />
-
-        <Card>
-          <CardHeader title="Verification history" />
-          {f.verification_logs.length === 0 ? (
-            <Empty title="No decisions yet" />
-          ) : (
-            <ol className="divide-y divide-ink-100 px-5">
-              {f.verification_logs.map((l) => (
-                <li key={l.id} className="py-3 text-sm">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <FindingStatusBadge status={l.old_status} /> → <FindingStatusBadge status={l.new_status} />
-                    <span className="text-xs text-ink-500">
-                      {l.assessor?.name ?? 'deleted user'} · {formatDateTime(l.created_at)}
-                    </span>
-                  </div>
-                  <p className="mt-1 whitespace-pre-wrap text-ink-700">{l.notes}</p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Card>
+        </aside>
       </div>
     </>
   );

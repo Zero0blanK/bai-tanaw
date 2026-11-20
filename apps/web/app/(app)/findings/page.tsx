@@ -1,26 +1,28 @@
 'use client';
 
-import { FINDING_CATEGORIES, FINDING_SOURCES, type FindingStatus, type Severity } from '@tanaw/shared';
-import { Paperclip, Plus } from 'lucide-react';
+import { FINDING_CATEGORIES, FINDING_SOURCES, type FindingStatus } from '@tanaw/shared';
+import { ArrowRight, Paperclip, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
-import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SEVERITY_COLOR, SeverityBadge, SOURCE_LABEL, SourceBadge } from '@/components/shared/badges';
-import { useAuth } from '@/components/shared/auth-provider';
-import { PageHeader, Pagination } from '@/components/shared/page';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { DecisionDialog, type QuickDecision } from '@/components/findings/decision-dialog';
 import { ManualFindingForm } from '@/components/findings/manual-finding-form';
+import { useAuth } from '@/components/shared/auth-provider';
+import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SEVERITY_COLOR, SeverityBadge, SOURCE_LABEL, SourceBadge } from '@/components/shared/badges';
+import { DetailList, PageHeader, Pagination } from '@/components/shared/page';
 import { Button } from '@/components/ui/button';
-import { Card, CardBody, CardHeader } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { Alert, Empty, SkeletonRows, Spinner } from '@/components/ui/feedback';
 import { Label, SearchInput, Select } from '@/components/ui/form';
 import { Tabs } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/toast';
 import { useApi } from '@/hooks/useApi';
-import { formatDate } from '@/lib/utils';
-import type { Finding, Target } from '@/types/api';
+import { cn, formatDate, formatDateTime } from '@/lib/utils';
+import type { Finding, FindingDetail, Target } from '@/types/api';
 
 const FILTERS = ['target_id', 'status', 'category', 'source', 'q'] as const;
 
-/** The status is the main way to slice findings, so it gets tabs; the rest are secondary filters. */
+/** Status is the main way to slice findings, so it gets tabs; the rest are secondary filters. */
 const STATUS_TABS: Array<{ value: FindingStatus | ''; label: string }> = [
   { value: 'PENDING', label: 'To verify' },
   { value: 'CONFIRMED', label: 'Confirmed' },
@@ -30,38 +32,136 @@ const STATUS_TABS: Array<{ value: FindingStatus | ''; label: string }> = [
   { value: '', label: 'All' },
 ];
 
-function FindingRow({ f }: { f: Finding }) {
-  const severity: Severity | null = f.final_severity ?? f.ai_severity;
+function age(iso: string): string {
+  const hours = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  if (hours < 1) return 'now';
+  if (hours < 24) return `${hours} h`;
+  return `${Math.floor(hours / 24)} d`;
+}
+
+function RowBody({ f, selected }: { f: Finding; selected: boolean }) {
+  const severity = f.final_severity ?? f.ai_severity;
   return (
-    <li>
-      <Link href={`/findings/${f.id}`} className="group flex gap-4 px-5 py-4 transition-colors hover:bg-ink-50/70">
-        <span aria-hidden className="w-1 shrink-0 rounded-full" style={{ backgroundColor: severity ? SEVERITY_COLOR[severity] : 'var(--color-ink-200)' }} />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-ink-900 group-hover:text-brand-700">{f.title}</p>
-          <p className="mt-1 truncate text-[13px] text-ink-500">
-            <span className="font-medium text-ink-600">{f.target?.name}</span>
-            <span className="mx-2 text-ink-300">/</span>
-            {f.affected_asset}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {f.source === 'AI' && f.status === 'PENDING' ? <AiUnverifiedBadge /> : <SourceBadge source={f.source} />}
-            <span className="text-xs text-ink-500">{CATEGORY_LABEL[f.category]}</span>
-            {f.wstg_id && <span className="text-xs text-ink-400">{f.wstg_id}</span>}
-          </div>
+    <>
+      <span aria-hidden className="w-1.5 shrink-0 self-stretch" style={{ backgroundColor: severity ? SEVERITY_COLOR[severity] : 'var(--color-ink-200)' }} />
+      <span className="min-w-0 flex-1">
+        <span className={cn('block text-sm leading-snug text-black', selected ? 'font-extrabold' : 'font-bold')}>{f.title}</span>
+        <span className="mt-1 block truncate text-xs text-ink-500">
+          {f.target?.name} <span className="text-ink-300">/</span> {f.affected_asset}
+        </span>
+        <span className="mt-2 flex flex-wrap items-center gap-2">
+          <SeverityBadge severity={severity} {...(f.final_severity ? {} : { prefix: 'Suggested' })} />
+          <span className="text-xs text-ink-500">{SOURCE_LABEL[f.source]}</span>
+          {f.status !== 'PENDING' && <FindingStatusBadge status={f.status} />}
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-1 text-xs tabular-nums text-ink-400">
+        <span>{age(f.created_at)}</span>
+        <span className="flex items-center gap-0.5" title="Evidence items">
+          <Paperclip className="h-3 w-3" aria-hidden />
+          {f._count?.evidence ?? 0}
+        </span>
+      </span>
+    </>
+  );
+}
+
+const rowClass = (selected: boolean) =>
+  cn('flex w-full gap-3 border-b border-ink-200 py-3 pr-4 text-left transition-colors', selected ? 'bg-ink-100' : 'hover:bg-ink-50');
+
+/** The selected finding, read in place: everything needed to decide, plus the decisions that need no evidence. */
+function Preview({ id, canVerify, onDecided }: { id: string; canVerify: boolean; onDecided: (verb: string) => void }) {
+  const detail = useApi<FindingDetail>(`/findings/${id}`);
+  const [decision, setDecision] = useState<QuickDecision | null>(null);
+  const f = detail.data;
+  if (detail.loading && !f) return <Spinner />;
+  if (detail.error || !f) return <Alert kind="error">{detail.error ?? 'Finding not found'}</Alert>;
+  const canReject = canVerify && f.allowed_transitions.includes('REJECTED');
+  const canConfirm = canVerify && f.allowed_transitions.includes('CONFIRMED');
+
+  return (
+    <article aria-labelledby="preview-title" className="border-t-2 border-black">
+      <div className="flex flex-wrap items-center gap-2 pt-4">
+        <FindingStatusBadge status={f.status} />
+        {f.source === 'AI' && f.status === 'PENDING' ? <AiUnverifiedBadge /> : <SourceBadge source={f.source} />}
+        <SeverityBadge severity={f.final_severity ?? f.ai_severity} prefix={f.final_severity ? 'Final' : 'Suggested'} />
+      </div>
+      <h2 id="preview-title" className="mt-3 font-display text-2xl leading-tight font-extrabold text-black sm:text-3xl">
+        {f.title}
+      </h2>
+      <p className="mt-2 text-sm break-all text-ink-600">{f.affected_asset}</p>
+
+      {(canConfirm || canReject) && (
+        <div className="mt-5 flex flex-wrap gap-2 border-y border-ink-200 py-3">
+          {canConfirm && (
+            <Link href={`/findings/${f.id}#verify`} className="inline-flex h-9 items-center gap-2 bg-black px-4 text-sm font-semibold text-white hover:bg-ink-700">
+              Review & confirm
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          )}
+          {canReject && (
+            <>
+              <Button variant="secondary" onClick={() => setDecision('FALSE_POSITIVE')}>
+                False positive
+              </Button>
+              <Button variant="danger" onClick={() => setDecision('REJECTED')}>
+                Reject
+              </Button>
+            </>
+          )}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2 text-right">
-          {f.final_severity ? <SeverityBadge severity={f.final_severity} /> : <SeverityBadge severity={f.ai_severity} prefix="Suggested " />}
-          <FindingStatusBadge status={f.status} />
-          <span className="flex items-center gap-2 text-xs text-ink-400">
-            <span className="flex items-center gap-0.5" title="Evidence items">
-              <Paperclip className="h-3 w-3" aria-hidden />
-              {f._count?.evidence ?? 0}
-            </span>
-            {formatDate(f.created_at)}
-          </span>
-        </div>
+      )}
+
+      <div className="mt-5">
+        <DetailList
+          items={[
+            ['Target', f.target?.name ?? '-'],
+            ['Category', CATEGORY_LABEL[f.category]],
+            ['OWASP Top 10 / WSTG', [f.owasp_top10, f.wstg_id].filter(Boolean).join(' / ') || '-'],
+            ['Evidence', `${f.evidence.length} item${f.evidence.length === 1 ? '' : 's'}`],
+            ['From scan', f.scan ? `${f.scan.tool.replace('_', ' ')}, ${formatDateTime(f.scan.created_at)}` : 'Manual'],
+            ['Raised', formatDateTime(f.created_at)],
+          ]}
+        />
+      </div>
+
+      <h3 className="mt-6 border-b border-black pb-1 text-sm font-bold text-black">What was found</h3>
+      <p className="mt-3 max-w-prose text-sm leading-relaxed whitespace-pre-line text-ink-800">{f.description}</p>
+
+      {f.verification_logs.length > 0 && (
+        <>
+          <h3 className="mt-6 border-b border-black pb-1 text-sm font-bold text-black">Decisions</h3>
+          <ol className="mt-2">
+            {f.verification_logs.map((log) => (
+              <li key={log.id} className="border-b border-ink-200 py-2 text-sm">
+                <span className="font-bold text-black">{log.new_status.replace('_', ' ').toLowerCase()}</span>
+                <span className="text-ink-500">
+                  {' '}
+                  by {log.assessor?.name ?? 'a deleted user'}, {formatDate(log.created_at)}
+                </span>
+                <p className="mt-0.5 text-ink-700">{log.notes}</p>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+
+      <Link href={`/findings/${f.id}`} className="mt-6 inline-flex items-center gap-1 text-sm font-bold text-black underline underline-offset-4">
+        Open the full finding: evidence, remediation, history
       </Link>
-    </li>
+
+      <DecisionDialog
+        findingId={f.id}
+        title={f.title}
+        decision={decision}
+        onClose={() => setDecision(null)}
+        onDone={() => {
+          const verb = decision === 'FALSE_POSITIVE' ? 'Marked false positive' : 'Rejected';
+          setDecision(null);
+          onDecided(verb);
+        }}
+      />
+    </article>
   );
 }
 
@@ -70,35 +170,72 @@ function FindingsView() {
   const pathname = usePathname();
   const params = useSearchParams();
   const { can } = useAuth();
-  const [showForm, setShowForm] = useState(false);
+  const toast = useToast();
+  const [adding, setAdding] = useState(false);
   const filters = Object.fromEntries(FILTERS.map((k) => [k, params.get(k) ?? ''])) as Record<(typeof FILTERS)[number], string>;
   const page = Number(params.get('page') ?? 1) || 1;
   const targets = useApi<Target[]>('/targets');
-  const findings = useApi<Finding[]>('/findings', { ...filters, page, limit: 20 });
+  const findings = useApi<Finding[]>('/findings', { ...filters, page, limit: 25 });
   const [search, setSearch] = useState(filters.q);
-  const setParamRef = useRef(setParam);
-  setParamRef.current = setParam;
+  const [selected, setSelected] = useState<string | null>(params.get('focus'));
+  const canVerify = can('ADMIN', 'ASSESSOR');
+
+  const setParam = useCallback(
+    (key: string, value: string | number) => {
+      const next = new URLSearchParams(params.toString());
+      if (value === '' || value === 1) next.delete(key);
+      else next.set(key, String(value));
+      if (key !== 'page') next.delete('page');
+      next.delete('focus');
+      router.replace(`${pathname}?${next.toString()}`);
+    },
+    [params, pathname, router],
+  );
+
   // Debounce typing into the URL (?q=), which drives the request.
   useEffect(() => {
     if (search.trim() === filters.q) return;
-    const timer = setTimeout(() => setParamRef.current('q', search.trim()), 300);
+    const timer = setTimeout(() => setParam('q', search.trim()), 300);
     return () => clearTimeout(timer);
-  }, [search, filters.q]);
+  }, [search, filters.q, setParam]);
 
-  function setParam(key: string, value: string | number) {
-    const next = new URLSearchParams(params.toString());
-    if (value === '' || value === 1) next.delete(key);
-    else next.set(key, String(value));
-    if (key !== 'page') next.delete('page');
-    router.replace(`${pathname}?${next.toString()}`);
-  }
+  const rows = useMemo(() => findings.data ?? [], [findings.data]);
+  // Keep a valid selection: the focused one if it's on this page, otherwise the first row.
+  useEffect(() => {
+    if (rows.length === 0) return;
+    if (!selected || !rows.some((r) => r.id === selected)) setSelected(rows[0]?.id ?? null);
+  }, [rows, selected]);
+
+  const move = useCallback(
+    (delta: number) => {
+      const i = rows.findIndex((r) => r.id === selected);
+      const next = rows[Math.min(rows.length - 1, Math.max(0, i + delta))];
+      if (next) {
+        setSelected(next.id);
+        document.getElementById(`row-${next.id}`)?.scrollIntoView({ block: 'nearest' });
+      }
+    },
+    [rows, selected],
+  );
+
+  // j/k move through the queue from anywhere on the page (not while typing or inside a dialog).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.closest('dialog')) return;
+      if (e.key === 'j') move(1);
+      else if (e.key === 'k') move(-1);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [move]);
 
   const filterSelect = (key: (typeof FILTERS)[number], label: string, options: Array<[string, string]>) => (
     <div className="min-w-0">
       <Label htmlFor={`f-${key}`} className="sr-only">
         {label}
       </Label>
-      <Select id={`f-${key}`} value={filters[key]} onChange={(e) => setParam(key, e.target.value)} className="h-9">
+      <Select id={`f-${key}`} value={filters[key]} onChange={(e) => setParam(key, e.target.value)}>
         <option value="">{`Any ${label.toLowerCase()}`}</option>
         {options.map(([v, l]) => (
           <option key={v} value={v}>
@@ -109,63 +246,121 @@ function FindingsView() {
     </div>
   );
 
+  const selectedIndex = rows.findIndex((r) => r.id === selected);
+
   return (
     <>
       <PageHeader
         title="Findings"
-        description="Every scan adds findings here on its own, from tool rules and the AI. They only count once an assessor confirms them."
+        description="Every scan adds findings here by itself, from tool rules and the AI. Work the queue: a finding counts only after an assessor decides."
         actions={
-          can('ADMIN', 'ASSESSOR') && (
-            <Button onClick={() => setShowForm((v) => !v)} variant={showForm ? 'secondary' : 'primary'}>
+          canVerify && (
+            <Button variant="secondary" onClick={() => setAdding(true)}>
               <Plus className="h-4 w-4" aria-hidden />
-              {showForm ? 'Close' : 'Add manual finding'}
+              Add manual finding
             </Button>
           )
         }
       />
-      {showForm && targets.data && (
-        <Card className="mb-6">
-          <CardHeader title="Record a manual finding" description="For hand tests, such as an IDOR found with two test accounts. It starts as To verify." />
-          <CardBody>
-            <ManualFindingForm targets={targets.data} defaultTargetId={filters.target_id} onCreated={(id) => router.push(`/findings/${id}`)} />
-          </CardBody>
-        </Card>
-      )}
 
       <Tabs label="Finding status" value={filters.status} onChange={(v) => setParam('status', v)} tabs={STATUS_TABS.map((t) => ({ value: t.value, label: t.label, attention: t.value === 'PENDING' }))} />
 
-      <Card>
-        <div className="grid grid-cols-1 gap-2 border-b border-ink-100 px-5 py-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SearchInput
-            label="Search findings"
-            placeholder="Search title, asset or description"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {filterSelect('target_id', 'Target', (targets.data ?? []).map((t) => [t.id, t.name]))}
-          {filterSelect('category', 'Category', FINDING_CATEGORIES.map((c) => [c, CATEGORY_LABEL[c]]))}
-          {filterSelect('source', 'Source', FINDING_SOURCES.map((s) => [s, SOURCE_LABEL[s]]))}
-        </div>
-        {findings.loading && !findings.data && <SkeletonRows rows={5} label="Loading findings" />}
-        {findings.error && (
-          <CardBody className="pt-5">
-            <Alert kind="error">{findings.error}</Alert>
-          </CardBody>
-        )}
-        {findings.data?.length === 0 && (
-          <Empty title={filters.q ? `No findings match "${filters.q}"` : filters.status === 'PENDING' ? 'Nothing waiting for verification' : 'No findings match these filters'}>
-            {filters.q ? 'Try fewer words, or clear the other filters.' : 'Run a full assessment from a target page and its scans turn into findings here.'}
-          </Empty>
-        )}
-        {findings.data && findings.data.length > 0 && (
-          <ul className="divide-y divide-ink-100">
-            {findings.data.map((f) => (
-              <FindingRow key={f.id} f={f} />
-            ))}
-          </ul>
-        )}
-        <Pagination meta={findings.meta} onPage={(p) => setParam('page', p)} />
-      </Card>
+      <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <SearchInput label="Search findings" placeholder="Search title, asset or description" value={search} onChange={(e) => setSearch(e.target.value)} />
+        {filterSelect('target_id', 'Target', (targets.data ?? []).map((t) => [t.id, t.name]))}
+        {filterSelect('category', 'Category', FINDING_CATEGORIES.map((c) => [c, CATEGORY_LABEL[c]]))}
+        {filterSelect('source', 'Source', FINDING_SOURCES.map((s) => [s, SOURCE_LABEL[s]]))}
+      </div>
+
+      {findings.error && <Alert kind="error">{findings.error}</Alert>}
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        <section aria-label="Queue" className="min-w-0 lg:col-span-5">
+          <div className="flex items-baseline justify-between border-b-2 border-black pb-2">
+            <p className="text-sm font-bold text-black">{findings.meta ? `${findings.meta.total} finding${findings.meta.total === 1 ? '' : 's'}` : 'Loading'}</p>
+            <p className="hidden text-xs text-ink-500 lg:block">
+              <kbd className="border border-ink-300 px-1 font-sans">j</kbd> <kbd className="border border-ink-300 px-1 font-sans">k</kbd> or arrow keys to move
+            </p>
+          </div>
+          {findings.loading && !findings.data && <SkeletonRows rows={6} label="Loading findings" />}
+          {findings.data?.length === 0 && (
+            <Empty title={filters.q ? `No findings match "${filters.q}"` : filters.status === 'PENDING' ? 'Nothing waiting for verification' : 'No findings match these filters'}>
+              {filters.q ? 'Try fewer words, or clear the other filters.' : 'Run a full assessment from a target page; its scans turn into findings here.'}
+            </Empty>
+          )}
+
+          {/* Small and medium screens: a plain list; each row opens the finding page. */}
+          {rows.length > 0 && (
+            <ul className="lg:hidden">
+              {rows.map((f) => (
+                <li key={f.id}>
+                  <Link href={`/findings/${f.id}`} className={rowClass(false)}>
+                    <RowBody f={f} selected={false} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Large screens: a listbox that selects into the preview pane. */}
+          {rows.length > 0 && (
+            <ul
+              role="listbox"
+              aria-label="Findings"
+              aria-activedescendant={selected ? `row-${selected}` : undefined}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  move(1);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  move(-1);
+                } else if (e.key === 'Enter' && selected) {
+                  router.push(`/findings/${selected}`);
+                }
+              }}
+              className="hidden outline-none focus-visible:ring-2 focus-visible:ring-black lg:block"
+            >
+              {rows.map((f) => (
+                <li key={f.id} id={`row-${f.id}`} role="option" aria-selected={f.id === selected} onClick={() => setSelected(f.id)} className={cn(rowClass(f.id === selected), 'cursor-pointer')}>
+                  <RowBody f={f} selected={f.id === selected} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <Pagination meta={findings.meta} onPage={(p) => setParam('page', p)} />
+        </section>
+
+        <section aria-label="Selected finding" className="hidden min-w-0 lg:col-span-7 lg:block">
+          <div className="sticky top-[calc(var(--spacing-topbar)+1.5rem)]">
+            {selected && selectedIndex >= 0 && (
+              <>
+                <p className="mb-2 text-xs tabular-nums text-ink-500">
+                  {selectedIndex + 1} of {rows.length} on this page
+                </p>
+                <Preview
+                  key={selected}
+                  id={selected}
+                  canVerify={canVerify}
+                  onDecided={(verb) => {
+                    toast({ title: verb, body: rows[selectedIndex]?.title ?? '' });
+                    const next = rows[selectedIndex + 1] ?? rows[selectedIndex - 1];
+                    setSelected(next?.id ?? null);
+                    void findings.reload();
+                  }}
+                />
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {targets.data && (
+        <Dialog open={adding} onClose={() => setAdding(false)} size="lg" title="Record a manual finding" description="For hand tests, such as an IDOR found with two test accounts. It starts as To verify.">
+          <ManualFindingForm targets={targets.data} defaultTargetId={filters.target_id} onCreated={(id) => router.push(`/findings/${id}`)} />
+        </Dialog>
+      )}
     </>
   );
 }

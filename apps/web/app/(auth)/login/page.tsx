@@ -4,54 +4,46 @@ import { LoginForm } from './login-form';
 
 export const metadata: Metadata = { title: 'Sign in' };
 
+/** The three rules the platform is built on, shown before anyone signs in. They are a real sequence of duties. */
 const RULES = [
   { title: 'Authorized targets only', body: 'Every request is checked against the allowlist and the target’s scope before it leaves.' },
-  { title: 'Test accounts, synthetic data', body: 'Secrets are stripped from tool output before anything is stored or sent to the AI.' },
-  { title: 'People decide', body: 'Tools and AI suggest findings. Only an assessor can confirm one.' },
+  { title: 'Secrets never leave', body: 'Credentials and personal data are stripped before anything is stored or sent to the AI.' },
+  { title: 'People decide', body: 'Tools and the AI only suggest. An assessor confirms every finding.' },
 ];
 
 export default function LoginPage() {
   return (
-    <main className="grid min-h-full lg:grid-cols-[1.1fr_1fr]">
-      <section className="relative hidden overflow-hidden bg-ink-900 px-12 py-12 text-ink-300 lg:flex lg:flex-col">
-        {/* Horizon lines: the view from a lookout. Decorative only. */}
-        <svg aria-hidden className="absolute inset-x-0 bottom-0 h-64 w-full text-brand-500/20" viewBox="0 0 600 200" preserveAspectRatio="none">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <path key={i} d={`M0 ${200 - i * 30} Q 300 ${170 - i * 34} 600 ${200 - i * 30}`} fill="none" stroke="currentColor" strokeWidth="1.5" />
-          ))}
-        </svg>
-        <div className="flex items-center gap-3 text-white">
+    <main className="grid min-h-full bg-white lg:grid-cols-12">
+      <section className="hidden border-r-[3px] border-black px-12 py-10 lg:col-span-7 lg:flex lg:flex-col">
+        <div className="flex items-center gap-3">
           <TanawMark className="h-9 w-9" />
-          <span className="font-display text-2xl font-semibold tracking-tight">Tanaw</span>
+          <span className="text-sm font-bold text-black">Security assessment platform</span>
         </div>
-        <div className="relative mt-auto max-w-md pb-20">
-          <h1 className="font-display text-4xl leading-[1.1] font-semibold tracking-[-0.02em] text-white">Watch over one application, carefully.</h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-ink-300">
-            Run the tools, let the AI read the results, and verify every finding yourself before it reaches the report.
-          </p>
-          <ul className="mt-10 space-y-5">
-            {RULES.map((r) => (
-              <li key={r.title} className="border-l-2 border-brand-500/60 pl-4">
-                <p className="text-sm font-semibold text-white">{r.title}</p>
-                <p className="mt-0.5 text-sm leading-relaxed text-ink-400">{r.body}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <h1 className="mt-auto font-display text-[clamp(5rem,11vw,10rem)] leading-[0.85] font-extrabold text-black">Tanaw</h1>
+        <p className="mt-6 max-w-md text-lg leading-snug text-ink-700">To watch over one application, carefully: run the tools, let the AI read the output, and decide every finding yourself.</p>
+        <ol className="mt-12 grid grid-cols-3 border-t-[3px] border-black">
+          {RULES.map((r, i) => (
+            <li key={r.title} className={i > 0 ? 'border-l border-ink-200 pt-4 pl-5' : 'pt-4 pr-5'}>
+              <p className="font-display text-3xl font-extrabold tabular-nums text-black">{i + 1}</p>
+              <p className="mt-2 text-sm font-bold text-black">{r.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-600">{r.body}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section className="flex items-center justify-center bg-paper px-4 py-12 sm:px-8">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
+      <section className="flex items-center px-4 py-12 sm:px-10 lg:col-span-5">
+        <div className="mx-auto w-full max-w-sm">
+          <div className="mb-10 flex items-center gap-3 lg:hidden">
             <TanawMark className="h-9 w-9" />
-            <span className="font-display text-2xl font-semibold tracking-tight text-ink-900">Tanaw</span>
+            <span className="font-display text-3xl font-extrabold text-black">Tanaw</span>
           </div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink-900">Sign in</h2>
-          <p className="mt-1.5 text-sm text-ink-500">Use the account an admin created for you.</p>
-          <div className="mt-6">
+          <h2 className="border-b-[3px] border-black pb-3 font-display text-4xl font-extrabold text-black">Sign in</h2>
+          <p className="mt-3 text-sm text-ink-600">Use the account an admin created for you.</p>
+          <div className="mt-8">
             <LoginForm />
           </div>
-          <p className="mt-8 text-xs leading-relaxed text-ink-500">Every sign-in and action is recorded in the audit log.</p>
+          <p className="mt-10 border-t border-ink-200 pt-4 text-xs leading-relaxed text-ink-500">Every sign-in and action is recorded in the audit log.</p>
         </div>
       </section>
     </main>

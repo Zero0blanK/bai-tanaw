@@ -46,7 +46,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
         <p className="text-sm font-semibold text-ink-900">{item.title}</p>
         {item.body && <p className="mt-0.5 text-sm leading-relaxed text-ink-600">{item.body}</p>}
       </div>
-      <button type="button" onClick={onDismiss} className="-mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-ink-400 hover:bg-ink-100 hover:text-ink-700" aria-label="Dismiss notification">
+      <button type="button" onClick={onDismiss} className="-mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-none text-ink-400 hover:bg-ink-100 hover:text-ink-700" aria-label="Dismiss notification">
         <X className="h-4 w-4" aria-hidden />
       </button>
     </li>

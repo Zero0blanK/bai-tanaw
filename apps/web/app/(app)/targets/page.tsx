@@ -122,7 +122,7 @@ function SortHeader({ label, k, sort, onSort, className }: { label: string; k: S
   const Icon = !active ? ChevronsUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
   return (
     <Th className={className} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-      <button type="button" onClick={() => onSort(k)} className={cn('inline-flex items-center gap-1 rounded hover:text-ink-900', active && 'text-ink-900')}>
+      <button type="button" onClick={() => onSort(k)} className={cn('inline-flex items-center gap-1 rounded-none hover:text-ink-900', active && 'text-ink-900')}>
         {label}
         <Icon className="h-3.5 w-3.5" aria-hidden />
       </button>

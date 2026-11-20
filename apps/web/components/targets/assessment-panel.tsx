@@ -116,7 +116,7 @@ function buildSteps(a: Assessment | undefined, targetId: string, scopeRules: num
 }
 
 function StepDot({ state, index }: { state: StepState; index: number }) {
-  const base = 'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold ring-4 ring-white';
+  const base = 'relative z-10 grid h-8 w-8 shrink-0 place-items-center text-xs font-bold ring-4 ring-white';
   switch (state) {
     case 'done':
       return (
@@ -126,24 +126,24 @@ function StepDot({ state, index }: { state: StepState; index: number }) {
       );
     case 'running':
       return (
-        <span className={cn(base, 'track-active bg-white text-brand-700 ring-brand-100 outline-2 outline-brand-500')}>
+        <span className={cn(base, 'track-active bg-white text-black outline-2 outline-black')}>
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         </span>
       );
     case 'failed':
       return (
-        <span className={cn(base, 'bg-red-600 text-white')}>
+        <span className={cn(base, 'bg-signal text-white')}>
           <TriangleAlert className="h-4 w-4" aria-hidden />
         </span>
       );
     case 'skipped':
       return (
-        <span className={cn(base, 'bg-ink-100 text-ink-400')}>
+        <span className={cn(base, 'bg-ink-100 text-ink-400 outline outline-dashed outline-ink-300')}>
           <Minus className="h-4 w-4" aria-hidden />
         </span>
       );
     case 'waiting':
-      return <span className={cn(base, 'bg-amber-50 text-amber-700 outline-2 outline-amber-300')}>{index}</span>;
+      return <span className={cn(base, 'bg-amber-400 text-black')}>{index}</span>;
     default:
       return <span className={cn(base, 'bg-ink-100 text-ink-500')}>{index}</span>;
   }
@@ -160,7 +160,7 @@ const STATE_LABEL: Record<StepState, string> = {
 
 function Track({ steps }: { steps: Step[] }) {
   return (
-    <ol className="grid grid-cols-1 gap-x-2 gap-y-4 sm:grid-cols-4 lg:grid-cols-8" aria-label="Assessment steps">
+    <ol className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4 lg:grid-cols-8" aria-label="Assessment steps">
       {steps.map((step, i) => {
         const connectorDone = step.state === 'done';
         const content = (
@@ -168,11 +168,11 @@ function Track({ steps }: { steps: Step[] }) {
             <div className="flex items-center">
               <StepDot state={step.state} index={i + 1} />
               {i < steps.length - 1 && (
-                <span aria-hidden className={cn('ml-[-2px] hidden h-0.5 flex-1 lg:block', connectorDone ? 'bg-brand-500' : 'bg-ink-200')} />
+                <span aria-hidden className={cn('hidden h-[3px] flex-1 lg:block', connectorDone ? 'bg-black' : 'bg-ink-200')} />
               )}
             </div>
-            <p className={cn('mt-2.5 text-sm font-semibold', step.state === 'idle' ? 'text-ink-500' : 'text-ink-900')}>{step.label}</p>
-            <p className={cn('mt-0.5 text-xs leading-snug', step.state === 'failed' ? 'text-red-700' : step.key === 'verify' && step.state === 'waiting' ? 'font-semibold text-amber-700' : 'text-ink-500')}>
+            <p className={cn('mt-2.5 text-sm font-bold', step.state === 'idle' ? 'text-ink-500' : 'text-black')}>{step.label}</p>
+            <p className={cn('mt-0.5 text-xs leading-snug', step.state === 'failed' ? 'font-semibold text-signal' : step.key === 'verify' && step.state === 'waiting' ? 'font-bold text-amber-700' : 'text-ink-500')}>
               {step.detail}
             </p>
             <span className="sr-only">({STATE_LABEL[step.state]})</span>
@@ -181,7 +181,7 @@ function Track({ steps }: { steps: Step[] }) {
         return (
           <li key={step.key} className="min-w-0">
             {step.href ? (
-              <Link href={step.href} className="block rounded-lg hover:[&_p:first-of-type]:text-brand-700">
+              <Link href={step.href} className="block hover:[&_p:first-of-type]:underline hover:[&_p:first-of-type]:underline-offset-4">
                 {content}
               </Link>
             ) : (
@@ -234,15 +234,15 @@ export function AssessmentPanel({ targetId, baseUrl, scopeRules, canRun, onChang
   const steps = buildSteps(a, targetId, scopeRules);
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-ink-200/70 bg-white">
-      <div className="flex flex-wrap items-start justify-between gap-6 border-b border-ink-100 bg-gradient-to-b from-brand-50/60 to-white px-6 pt-6 pb-5">
+    <section className="relative border-2 border-black bg-white">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-black px-5 pt-4 pb-4">
         <div className="max-w-xl">
-          <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight text-ink-900">
-            <Radar className="h-5 w-5 text-brand-600" aria-hidden />
+          <h2 className="flex items-center gap-2 font-display text-2xl font-extrabold text-black">
+            <Radar className="h-6 w-6 text-black" aria-hidden />
             Assessment
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-ink-600">
-            Runs every tool against <span className="font-medium text-ink-800">{baseUrl}</span> within its scope. Each finished scan becomes
+            Runs every tool against <span className="font-bold text-black">{baseUrl}</span> within its scope. Each finished scan becomes
             findings automatically, and the AI reads it for anything the rules miss. Nothing is confirmed until you verify it.
           </p>
           {a?.started_at && <p className="mt-2 text-xs text-ink-500">Last run started {formatDateTime(a.started_at)}</p>}
@@ -254,7 +254,7 @@ export function AssessmentPanel({ targetId, baseUrl, scopeRules, canRun, onChang
           </Button>
         )}
       </div>
-      <div className="px-6 py-6">
+      <div className="px-5 py-4">
         {assessment.error ? <Alert kind="error">{assessment.error}</Alert> : <Track steps={steps} />}
         {(error || notice) && (
           <div className="mt-5 space-y-2">
@@ -264,7 +264,7 @@ export function AssessmentPanel({ targetId, baseUrl, scopeRules, canRun, onChang
         )}
         {a && !a.batch_id && !canRun && <p className="mt-4 text-sm text-ink-500">No assessment has been run on this target yet.</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-ink-100 bg-ink-50/60 px-6 py-3 text-xs text-ink-500">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-ink-200 px-5 py-2 text-xs text-ink-600">
         <span className="flex items-center gap-1.5">
           <UserCheck className="h-3.5 w-3.5" aria-hidden />
           Tools and AI only suggest. An assessor confirms.

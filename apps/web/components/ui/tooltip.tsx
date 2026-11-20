@@ -28,7 +28,7 @@ export function Tooltip({ content, children, side = 'top' }: { content: string; 
           role="tooltip"
           id={id}
           className={cn(
-            'pointer-events-none absolute z-50 w-max max-w-64 rounded-md bg-ink-900 px-2.5 py-1.5 text-xs font-medium leading-snug text-white shadow-[var(--shadow-overlay)]',
+            'pointer-events-none absolute z-50 w-max max-w-64 rounded-none bg-ink-900 px-2.5 py-1.5 text-xs font-medium leading-snug text-white shadow-[var(--shadow-overlay)]',
             side === 'top' && 'bottom-full left-1/2 mb-2 -translate-x-1/2',
             side === 'bottom' && 'top-full left-1/2 mt-2 -translate-x-1/2',
             side === 'right' && 'top-1/2 left-full ml-3 -translate-y-1/2',

@@ -3,7 +3,7 @@ import type { ComponentProps, LabelHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const control =
-  'block w-full rounded-[var(--radius-control)] border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 transition-colors hover:border-ink-300 focus:border-brand-500 focus:outline-none focus:ring-3 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500 aria-invalid:border-red-400 aria-invalid:focus:ring-red-100';
+  'block w-full rounded-[var(--radius-control)] border border-ink-300 bg-white px-3 py-2 text-sm text-black placeholder:text-ink-400 transition-colors hover:border-ink-500 focus:border-black focus:outline-none focus:ring-1 focus:ring-black disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500 aria-invalid:border-signal aria-invalid:focus:ring-signal';
 
 export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input className={cn(control, 'h-10', className)} {...props} />;
@@ -32,7 +32,7 @@ export function SearchInput({ label, className, ...props }: ComponentProps<'inpu
 }
 
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn('mb-1.5 block text-[13px] font-semibold text-ink-700', className)} {...props} />;
+  return <label className={cn('mb-1.5 block text-[13px] font-bold text-black', className)} {...props} />;
 }
 
 /** Ids the control should point at with aria-describedby, so hints and errors are read with the field. */
@@ -67,7 +67,7 @@ export function Field({
       <Label htmlFor={htmlFor}>
         {label}
         {required && (
-          <span className="ml-0.5 text-red-600" aria-hidden>
+          <span className="ml-0.5 text-signal" aria-hidden>
             *
           </span>
         )}
@@ -75,7 +75,7 @@ export function Field({
       </Label>
       {children}
       {error ? (
-        <p id={`${htmlFor}-error`} className="mt-1.5 text-xs font-medium text-red-700">
+        <p id={`${htmlFor}-error`} className="mt-1.5 text-xs font-semibold text-signal">
           {error}
         </p>
       ) : (

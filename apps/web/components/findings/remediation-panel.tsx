@@ -16,7 +16,7 @@ import type { AiAnalysis, FindingDetail, Job, RemediationDraft } from '@/types/a
 function Draft({ analysis, onAccept, accepting }: { analysis: AiAnalysis; onAccept?: () => void; accepting: boolean }) {
   const d = analysis.output as unknown as RemediationDraft;
   return (
-    <div className="space-y-2 rounded-md border border-violet-200 bg-violet-50/40 p-4 text-sm">
+    <div className="space-y-2 border-l-[3px] border-[#6b3fd1] bg-ink-50 p-4 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge tone="purple">
@@ -40,7 +40,7 @@ function Draft({ analysis, onAccept, accepting }: { analysis: AiAnalysis; onAcce
           <li key={i}>{s}</li>
         ))}
       </ol>
-      {d.code_example && <pre className="overflow-auto rounded bg-ink-900 px-3 py-2 text-xs text-ink-100">{d.code_example}</pre>}
+      {d.code_example && <pre className="overflow-auto rounded-none bg-ink-900 px-3 py-2 text-xs text-ink-100">{d.code_example}</pre>}
       {d.references.length > 0 && (
         <ul className="list-inside list-disc text-xs text-ink-600">
           {d.references.map((r) => (

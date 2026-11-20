@@ -58,7 +58,7 @@ export function Dialog({
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        'm-auto w-[calc(100%-2rem)] rounded-[var(--radius-overlay)] bg-white p-0 text-ink-900 shadow-[var(--shadow-overlay)] backdrop:bg-ink-950/45',
+        'm-auto w-[calc(100%-2rem)] border-t-[6px] border-black bg-white p-0 text-ink-900 shadow-[var(--shadow-overlay)] backdrop:bg-black/50',
         size === 'sm' ? 'max-w-md' : size === 'lg' ? 'max-w-2xl' : 'max-w-lg',
       )}
     >
@@ -66,7 +66,7 @@ export function Dialog({
         <div className="flex max-h-[85vh] flex-col">
           <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div className="min-w-0">
-              <h2 id={titleId} className="font-display text-lg font-semibold tracking-tight">
+              <h2 id={titleId} className="font-display text-2xl font-extrabold text-black">
                 {title}
               </h2>
               {description && (
@@ -85,7 +85,7 @@ export function Dialog({
             </button>
           </div>
           {children && <div className="overflow-y-auto px-6 pt-4">{children}</div>}
-          {footer && <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-ink-100 bg-ink-50/60 px-6 py-4">{footer}</div>}
+          {footer && <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-black px-6 py-4">{footer}</div>}
           {!footer && <div className="pb-6" />}
         </div>
       )}

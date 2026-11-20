@@ -30,9 +30,9 @@ export function EvidenceImage({ evidenceId, alt }: { evidenceId: string; alt: st
     };
   }, [evidenceId]);
   if (failed) return <p className="text-xs text-red-600">Could not load the image.</p>;
-  if (!url) return <div className="h-24 w-40 animate-pulse rounded bg-ink-100" />;
+  if (!url) return <div className="h-24 w-40 animate-pulse rounded-none bg-ink-100" />;
   // A plain <img>: the source is an authenticated blob URL, not a static asset next/image could optimize.
-  return <img src={url} alt={alt} className="max-h-96 rounded border border-ink-200" />;
+  return <img src={url} alt={alt} className="max-h-96 rounded-none border border-ink-200" />;
 }
 
 export function EvidenceItem({ evidence }: { evidence: Evidence }) {
@@ -44,11 +44,11 @@ export function EvidenceItem({ evidence }: { evidence: Evidence }) {
         {evidence.creator?.name ?? 'system'} · {formatDateTime(evidence.created_at)}
       </div>
       {evidence.scan_result && (
-        <div className="rounded border border-ink-200 bg-ink-50 px-3 py-2 text-sm">
+        <div className="rounded-none border border-ink-200 bg-ink-50 px-3 py-2 text-sm">
           <ResultSummary type={evidence.scan_result.type} data={evidence.scan_result.data} />
         </div>
       )}
-      {evidence.content && !evidence.scan_result && <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded bg-ink-900 px-3 py-2 text-xs text-ink-100">{evidence.content}</pre>}
+      {evidence.content && !evidence.scan_result && <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-none bg-ink-900 px-3 py-2 text-xs text-ink-100">{evidence.content}</pre>}
       {isImage && <EvidenceImage evidenceId={evidence.id} alt={`Screenshot evidence ${evidence.id}`} />}
       {evidence.file_path && !isImage && (
         <Button size="sm" variant="secondary" onClick={() => void downloadFile(`/evidence/${evidence.id}/file`, `evidence-${evidence.id}.txt`)}>

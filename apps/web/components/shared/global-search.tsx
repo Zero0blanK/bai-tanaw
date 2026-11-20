@@ -144,7 +144,7 @@ export function GlobalSearch() {
         className="h-9 w-full rounded-[var(--radius-control)] border border-ink-200 bg-ink-50 pr-10 pl-9 text-sm text-ink-900 placeholder:text-ink-400 transition-colors hover:border-ink-300 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-3 focus:ring-brand-100"
       />
       {!query && (
-        <kbd className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded border border-ink-200 bg-white px-1.5 text-[11px] font-semibold text-ink-400 sm:block" aria-hidden>
+        <kbd className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded-none border border-ink-200 bg-white px-1.5 text-[11px] font-semibold text-ink-400 sm:block" aria-hidden>
           /
         </kbd>
       )}
@@ -166,7 +166,7 @@ export function GlobalSearch() {
               onMouseEnter={() => setActive(i)}
               onClick={() => go(r)}
               className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm',
+                'flex cursor-pointer items-center gap-3 rounded-none px-3 py-2 text-sm',
                 i === active ? 'bg-ink-100 text-ink-900' : 'text-ink-700',
                 r.kind === 'all' && 'mt-1 border-t border-ink-100 font-semibold text-brand-700',
               )}

@@ -90,13 +90,13 @@ function writeCollapsed(value: boolean) {
   }
 }
 
-function Sidebar({ collapsed, onNavigate, isActive, groups }: { collapsed: boolean; onNavigate?: () => void; isActive: (href: string) => boolean; groups: typeof NAV }) {
+function Sidebar({ collapsed, onNavigate, isActive, groups, counts }: { collapsed: boolean; onNavigate?: () => void; isActive: (href: string) => boolean; groups: typeof NAV; counts: Record<string, number | null> }) {
   return (
     <nav aria-label="Main" className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className={cn('px-3 pb-1.5 text-xs font-semibold text-ink-400', collapsed && 'sr-only')}>{group.label}</p>
-          <ul className="space-y-0.5">
+          <p className={cn('border-b border-ink-200 px-3 pb-1.5 text-xs font-bold text-black', collapsed && 'sr-only')}>{group.label}</p>
+          <ul className="mt-1">
             {group.items.map(({ href, label, icon: Icon }) => {
               const active = isActive(href);
               const link = (
@@ -106,14 +106,20 @@ function Sidebar({ collapsed, onNavigate, isActive, groups }: { collapsed: boole
                   aria-current={active ? 'page' : undefined}
                   aria-label={collapsed ? label : undefined}
                   className={cn(
-                    'relative flex items-center gap-3 rounded-[var(--radius-control)] py-2 text-sm font-medium transition-colors duration-[var(--duration-fast)]',
+                    'relative flex items-center gap-3 py-2 text-sm transition-colors duration-[var(--duration-fast)]',
                     collapsed ? 'justify-center px-0' : 'px-3',
-                    active ? 'bg-white/10 text-white' : 'text-ink-300 hover:bg-white/5 hover:text-white',
+                    active ? 'bg-ink-100 font-bold text-black' : 'font-medium text-ink-600 hover:bg-ink-50 hover:text-black',
                   )}
                 >
-                  {active && <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand-300" aria-hidden />}
-                  <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-300' : 'text-ink-400')} aria-hidden />
-                  {!collapsed && label}
+                  {active && <span className="absolute inset-y-0 left-0 w-[3px] bg-black" aria-hidden />}
+                  <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-black' : 'text-ink-400')} aria-hidden />
+                  {!collapsed && <span className="flex-1">{label}</span>}
+                  {!collapsed && counts[href] ? (
+                    <span className="text-xs font-bold tabular-nums text-amber-600" aria-label={`${counts[href]} waiting`}>
+                      {counts[href]}
+                    </span>
+                  ) : null}
+                  {collapsed && counts[href] ? <span className="absolute top-1 right-2 h-2 w-2 bg-amber-500" aria-hidden /> : null}
                 </Link>
               );
               return (
@@ -174,6 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return extra ? { group: extra[1].group, label: extra[1].label, href: extra[0] } : null;
   }, [isActive]);
   const isDetail = section !== null && pathname !== section.href;
+  const counts = useMemo<Record<string, number | null>>(() => ({ '/findings': pending }), [pending]);
   const shell = useMemo(() => ({ setDetail }), []);
 
   function toggleCollapsed() {
@@ -184,9 +191,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const brand = (compact: boolean) => (
-    <Link href="/dashboard" className={cn('flex h-[var(--spacing-topbar)] shrink-0 items-center gap-2.5 text-white', compact ? 'justify-center px-0' : 'px-5')}>
+    <Link href="/dashboard" className={cn('flex h-[var(--spacing-topbar)] shrink-0 items-center gap-2.5 border-b-[3px] border-black text-black', compact ? 'justify-center px-0' : 'px-4')}>
       <TanawMark className="h-7 w-7 shrink-0" />
-      {!compact && <span className="font-display text-xl font-semibold tracking-tight">Tanaw</span>}
+      {!compact && <span className="font-display text-2xl font-extrabold">Tanaw</span>}
       {compact && <span className="sr-only">Tanaw dashboard</span>}
     </Link>
   );
@@ -194,33 +201,33 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ShellProvider value={shell}>
       <div className="min-h-full print:block">
-        <a href="#main" className="sr-only z-50 rounded bg-white px-3 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
+        <a href="#main" className="sr-only z-50 rounded-none bg-white px-3 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
           Skip to content
         </a>
 
         {/* Desktop sidebar */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-30 hidden flex-col bg-ink-900 transition-[width] duration-[var(--duration-base)] ease-[var(--ease-standard)] lg:flex print:hidden',
+            'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-ink-200 bg-white transition-[width] duration-[var(--duration-base)] ease-[var(--ease-standard)] lg:flex print:hidden',
             collapsed ? 'w-[var(--spacing-sidebar-collapsed)]' : 'w-[var(--spacing-sidebar)]',
           )}
         >
           {brand(collapsed)}
-          <Sidebar collapsed={collapsed} isActive={isActive} groups={groups} />
+          <Sidebar collapsed={collapsed} isActive={isActive} groups={groups} counts={counts} />
         </aside>
 
         {/* Mobile and tablet drawer */}
         {drawer && (
           <div className="fixed inset-0 z-40 lg:hidden print:hidden">
-            <button type="button" className="absolute inset-0 bg-ink-950/50" aria-label="Close navigation" onClick={() => setDrawer(false)} />
-            <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-ink-900 shadow-[var(--shadow-overlay)]" aria-label="Navigation">
+            <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close navigation" onClick={() => setDrawer(false)} />
+            <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r-2 border-black bg-white" aria-label="Navigation">
               <div className="flex items-center justify-between pr-3">
                 {brand(false)}
-                <button type="button" onClick={() => setDrawer(false)} className="grid h-10 w-10 place-items-center rounded-lg text-ink-300 hover:bg-white/10 hover:text-white" aria-label="Close navigation">
+                <button type="button" onClick={() => setDrawer(false)} className="grid h-10 w-10 place-items-center text-ink-600 hover:bg-ink-100 hover:text-black" aria-label="Close navigation">
                   <X className="h-5 w-5" aria-hidden />
                 </button>
               </div>
-              <Sidebar collapsed={false} isActive={isActive} groups={groups} onNavigate={() => setDrawer(false)} />
+              <Sidebar collapsed={false} isActive={isActive} groups={groups} counts={counts} onNavigate={() => setDrawer(false)} />
             </aside>
           </div>
         )}
@@ -231,7 +238,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             collapsed ? 'lg:pl-[var(--spacing-sidebar-collapsed)]' : 'lg:pl-[var(--spacing-sidebar)]',
           )}
         >
-          <header className="sticky top-0 z-20 flex h-[var(--spacing-topbar)] items-center gap-3 border-b border-ink-200 bg-white/90 px-4 backdrop-blur sm:px-6 print:hidden">
+          <header className="sticky top-0 z-20 flex h-[var(--spacing-topbar)] items-center gap-3 border-b-[3px] border-black bg-white px-4 sm:px-6 print:hidden">
             <button
               type="button"
               onClick={() => setDrawer(true)}
@@ -255,17 +262,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             {section && (
               <nav aria-label="Breadcrumb" className="hidden min-w-0 md:block">
                 <ol className="flex items-center gap-1.5 text-sm">
-                  <li className="text-ink-400">{section.group}</li>
+                  <li className="text-ink-500">{section.group}</li>
                   <li aria-hidden>
                     <ChevronRight className="h-3.5 w-3.5 text-ink-300" />
                   </li>
                   <li className="min-w-0">
                     {isDetail ? (
-                      <Link href={section.href} className="font-medium text-ink-600 hover:text-brand-700">
+                      <Link href={section.href} className="font-medium text-ink-600 underline-offset-4 hover:text-black hover:underline">
                         {section.label}
                       </Link>
                     ) : (
-                      <span aria-current="page" className="font-semibold text-ink-900">
+                      <span aria-current="page" className="font-bold text-black">
                         {section.label}
                       </span>
                     )}
@@ -275,7 +282,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       <li aria-hidden>
                         <ChevronRight className="h-3.5 w-3.5 text-ink-300" />
                       </li>
-                      <li aria-current="page" className="max-w-[18rem] truncate font-semibold text-ink-900">
+                      <li aria-current="page" className="max-w-[18rem] truncate font-bold text-black">
                         {detail}
                       </li>
                     </>
@@ -293,8 +300,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link
                     href="/findings?status=PENDING"
                     className={cn(
-                      'inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] border px-3 text-sm font-semibold transition-colors',
-                      pending > 0 ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-ink-200 text-ink-500 hover:bg-ink-50',
+                      'inline-flex h-9 items-center gap-2 border px-3 text-sm font-bold transition-colors',
+                      pending > 0 ? 'border-amber-500 bg-amber-400 text-black hover:bg-amber-300' : 'border-ink-300 text-ink-500 hover:bg-ink-50',
                     )}
                     aria-label={`${pending} findings waiting for verification`}
                   >
@@ -307,18 +314,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               {user && (
                 <Menu
                   label="Account menu"
-                  triggerClassName="flex items-center gap-2 rounded-full p-0.5 pr-0.5 transition-colors hover:bg-ink-100 sm:pr-3"
+                  triggerClassName="flex items-center gap-2 p-0.5 pr-0.5 transition-colors hover:bg-ink-100 sm:pr-3"
                   trigger={
                     <>
-                      <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-600 font-display text-xs font-semibold text-white">{initials(user.name)}</span>
-                      <span className="hidden max-w-32 truncate text-sm font-semibold text-ink-800 sm:block">{user.name}</span>
+                      <span className="grid h-8 w-8 place-items-center bg-black text-xs font-bold text-white">{initials(user.name)}</span>
+                      <span className="hidden max-w-32 truncate text-sm font-bold text-black sm:block">{user.name}</span>
                     </>
                   }
                   header={
                     <>
                       <p className="truncate text-sm font-semibold text-ink-900">{user.name}</p>
                       <p className="truncate text-xs text-ink-500">{user.email}</p>
-                      <p className="mt-1 text-xs font-semibold text-brand-700">{humanize(user.role)}</p>
+                      <p className="mt-1 text-xs font-bold text-black">{humanize(user.role)}</p>
                     </>
                   }
                   items={[
@@ -333,7 +340,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </header>
 
           <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10 print:p-0">{children}</div>
+            <div className="mx-auto max-w-[90rem] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 print:p-0">{children}</div>
           </main>
         </div>
       </div>

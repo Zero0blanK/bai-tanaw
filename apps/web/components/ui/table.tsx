@@ -10,9 +10,9 @@ export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>)
 }
 
 export function Th({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cn('border-y border-ink-100 bg-ink-50/70 px-5 py-2.5 text-xs font-semibold text-ink-500', className)} {...props} />;
+  return <th className={cn('border-b border-black px-4 py-2 text-xs font-bold text-black', className)} {...props} />;
 }
 
 export function Td({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('border-b border-ink-100 px-5 py-3 align-top text-ink-700', className)} {...props} />;
+  return <td className={cn('border-b border-ink-200 px-4 py-2 align-top text-ink-800', className)} {...props} />;
 }

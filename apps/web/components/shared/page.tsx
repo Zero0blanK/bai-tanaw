@@ -12,12 +12,14 @@ import { useBreadcrumbDetail } from './shell-context';
 export function PageHeader({ title, description, actions, crumbs }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; crumbs?: Array<{ href: string; label: string }> }) {
   useBreadcrumbDetail(crumbs && typeof title === 'string' ? title : null);
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div className="min-w-0">
-        <h1 className="font-display text-[26px] leading-tight font-semibold tracking-[-0.02em] text-ink-900 sm:text-[30px]">{title}</h1>
-        {description && <div className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-500">{description}</div>}
+    <header className="mb-5 border-b-[3px] border-black pb-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 max-w-3xl">
+          <h1 className="font-display text-[26px] leading-[1.05] font-extrabold text-black sm:text-[34px]">{title}</h1>
+          {description && <div className="mt-1.5 max-w-3xl text-sm leading-relaxed text-ink-600">{description}</div>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
   );
 }
@@ -25,7 +27,7 @@ export function PageHeader({ title, description, actions, crumbs }: { title: Rea
 export function Pagination({ meta, onPage }: { meta: PaginationMeta | undefined; onPage: (page: number) => void }) {
   if (!meta || meta.total_pages <= 1) return null;
   return (
-    <div className="flex items-center justify-between border-t border-ink-100 px-5 py-3 text-xs text-ink-600">
+    <div className="flex items-center justify-between border-t border-ink-200 px-5 py-3 text-xs text-ink-600">
       <span>
         Page {meta.page} of {meta.total_pages}, {meta.total} in total
       </span>
@@ -42,13 +44,13 @@ export function Pagination({ meta, onPage }: { meta: PaginationMeta | undefined;
 }
 
 /** Key/value grid for detail pages. */
-export function DetailList({ items }: { items: Array<[string, ReactNode]> }) {
+export function DetailList({ items, single }: { items: Array<[string, ReactNode]>; single?: boolean }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+    <dl className={single ? 'grid grid-cols-1 gap-y-4 text-sm' : 'grid grid-cols-1 gap-x-8 gap-y-4 text-sm sm:grid-cols-2'}>
       {items.map(([k, v]) => (
         <div key={k} className="min-w-0">
-          <dt className="text-xs font-semibold text-ink-500">{k}</dt>
-          <dd className="mt-1 break-words text-ink-800">{v ?? '-'}</dd>
+          <dt className="text-xs font-bold text-black">{k}</dt>
+          <dd className="mt-1 break-words text-ink-700">{v ?? '-'}</dd>
         </div>
       ))}
     </dl>

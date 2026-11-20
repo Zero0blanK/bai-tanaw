@@ -1,128 +1,131 @@
 'use client';
 
 import { FINDING_CATEGORIES, FINDING_SOURCES, FINDING_STATUSES, SCAN_STATUSES, SEVERITIES, type Severity } from '@tanaw/shared';
-import { Bug, ChevronRight, FileText, ShieldCheck } from 'lucide-react';
+import { ArrowRight, FileText, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { HBarChart, type BarDatum } from '@/components/shared/bar-chart';
 import { useAuth } from '@/components/shared/auth-provider';
-import { CATEGORY_LABEL, FindingStatusBadge, SEVERITY_COLOR, SOURCE_LABEL } from '@/components/shared/badges';
-import { Card, CardBody, CardHeader } from '@/components/ui/card';
+import { SEVERITY_COLOR, SeverityBadge, SOURCE_LABEL } from '@/components/shared/badges';
+import { HBarChart, type BarDatum } from '@/components/shared/bar-chart';
 import { PageHeader } from '@/components/shared/page';
+import { Card, CardHeader, FigureStrip } from '@/components/ui/card';
 import { Alert, Empty, SkeletonRows, Spinner } from '@/components/ui/feedback';
 import { Label, Select } from '@/components/ui/form';
 import { useApi } from '@/hooks/useApi';
-import { formatDate, humanize } from '@/lib/utils';
+import { humanize } from '@/lib/utils';
 import type { Counts, Dashboard, Finding, Target } from '@/types/api';
 
-/** Severity is ordinal, so it gets one hue from light (INFO) to dark (CRITICAL); labels name each bar. */
-const SEVERITY_RAMP: Record<Severity, string> = {
-  CRITICAL: '#7f1d1d',
-  HIGH: '#b91c1c',
-  MEDIUM: '#dc2626',
-  LOW: '#f87171',
-  INFO: '#fca5a5',
+/** Chart axis labels must fit one line; the full names are on the Findings page. */
+const CHART_CATEGORY: Record<(typeof FINDING_CATEGORIES)[number], string> = {
+  AUTHENTICATION: 'Authentication',
+  ACCESS_CONTROL: 'Access control',
+  SECURITY_CONFIG: 'Config & HTTPS',
 };
 
 function bars<T extends string>(counts: Counts, keys: readonly T[], label: (k: T) => string = humanize, color?: (k: T) => string): BarDatum[] {
   return keys.map((k) => ({ label: label(k), value: counts[k] ?? 0, ...(color ? { color: color(k) } : {}) }));
 }
 
-function Stat({ label, value, href, tone }: { label: string; value: number; href: string; tone: string }) {
-  return (
-    <Link href={href} className="group rounded-xl px-1 py-1">
-      <p className="text-[13px] font-semibold text-ink-500 group-hover:text-ink-800">{label}</p>
-      <p className={`mt-1 font-display text-3xl font-semibold tabular-nums ${value > 0 ? tone : 'text-ink-300'}`}>{value}</p>
-    </Link>
-  );
+function age(iso: string): string {
+  const hours = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  if (hours < 1) return 'just now';
+  if (hours < 24) return `${hours} h`;
+  return `${Math.floor(hours / 24)} d`;
 }
 
-/** The one number that asks for action leads the page; the rest are context. */
-function Lead({ pending, href }: { pending: number; href: string }) {
+/** The latest findings waiting for a decision, newest first. Each opens in the Findings queue. */
+function Queue({ targetId }: { targetId: string }) {
+  const queue = useApi<Finding[]>('/findings', { target_id: targetId, status: 'PENDING', limit: 6 });
+  const href = `/findings?${targetId ? `target_id=${targetId}&` : ''}status=PENDING`;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/70 px-6 py-5">
-      <div className="flex items-baseline gap-4">
-        <span className="font-display text-5xl font-semibold tabular-nums text-amber-700">{pending}</span>
-        <span className="max-w-sm text-[15px] leading-snug text-ink-700">
-          {pending === 1 ? 'finding is' : 'findings are'} waiting for an assessor to confirm or dismiss
-        </span>
-      </div>
-      {pending > 0 && (
-        <Link href={href} className="inline-flex h-10 items-center rounded-lg bg-ink-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-ink-800">
-          Review findings
-        </Link>
-      )}
-    </div>
-  );
-}
-
-/** The latest findings, newest first, so the dashboard shows what changed without opening Findings. */
-function RecentFindings({ targetId }: { targetId: string }) {
-  const recent = useApi<Finding[]>('/findings', { target_id: targetId, limit: 6 });
-  return (
-    <Card>
+    <Card className="lg:col-span-8">
       <CardHeader
-        title="Recent findings"
+        title="Verification queue"
+        description="Suggested by tool rules and the AI; nothing counts until an assessor decides."
         actions={
-          <Link href={`/findings${targetId ? `?target_id=${targetId}` : ''}`} className="text-sm font-semibold text-brand-700 hover:underline">
-            View all
+          <Link href={href} className="inline-flex items-center gap-1 text-sm font-bold text-black underline-offset-4 hover:underline">
+            Open queue
+            <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         }
       />
-      {recent.loading && !recent.data && <SkeletonRows rows={4} label="Loading recent findings" />}
-      {recent.error && (
-        <CardBody>
-          <Alert kind="error">{recent.error}</Alert>
-        </CardBody>
+      {queue.loading && !queue.data && <SkeletonRows rows={5} label="Loading the queue" />}
+      {queue.error && (
+        <div className="px-5 pb-5">
+          <Alert kind="error">{queue.error}</Alert>
+        </div>
       )}
-      {recent.data?.length === 0 && <Empty title="No findings yet">Run an assessment from a target page.</Empty>}
-      {recent.data && recent.data.length > 0 && (
-        <ul className="divide-y divide-ink-100 border-t border-ink-100">
-          {recent.data.map((f) => {
-            const severity = f.final_severity ?? f.ai_severity;
-            return (
-              <li key={f.id}>
-                <Link href={`/findings/${f.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-ink-50/70">
-                  <span aria-hidden className="h-8 w-1 shrink-0 rounded-full" style={{ backgroundColor: severity ? SEVERITY_COLOR[severity] : 'var(--color-ink-200)' }} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-ink-900">{f.title}</span>
-                    <span className="block truncate text-xs text-ink-500">
-                      {f.target?.name}, {formatDate(f.created_at)}
-                    </span>
+      {queue.data?.length === 0 && <Empty title="The queue is empty">Every finding has a decision. Run an assessment to look again.</Empty>}
+      {queue.data && queue.data.length > 0 && (
+        <ol className="border-t border-black">
+          {queue.data.map((f) => (
+            <li key={f.id} className="border-b border-ink-200 last:border-b-0">
+              <Link href={`/findings?${targetId ? `target_id=${targetId}&` : ''}status=PENDING&focus=${f.id}`} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 px-4 py-2 transition-colors hover:bg-ink-50">
+                <span aria-hidden className="h-7 w-1.5" style={{ backgroundColor: f.ai_severity ? SEVERITY_COLOR[f.ai_severity] : 'var(--color-ink-200)' }} />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold text-black">{f.title}</span>
+                  <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-ink-500">
+                    <span className="truncate">{f.target?.name}</span>
+                    <span aria-hidden className="text-ink-300">/</span>
+                    <span>{SOURCE_LABEL[f.source]}</span>
                   </span>
-                  <FindingStatusBadge status={f.status} />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                </span>
+                <span className="flex items-center gap-3">
+                  <SeverityBadge severity={f.ai_severity} />
+                  <span className="w-8 text-right text-xs tabular-nums text-ink-400">{age(f.created_at)}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
       )}
     </Card>
   );
 }
 
-/** The few things people come to the dashboard to do next. Links only; each lands on a working page. */
-function QuickActions({ canAssess, pendingHref }: { canAssess: boolean; pendingHref: string }) {
+/** Confirmed findings by severity as plain proportional rules: readable at a glance, labelled, no chart chrome. */
+function SeverityLedger({ counts }: { counts: Counts }) {
+  const total = SEVERITIES.reduce((a, s) => a + (counts[s] ?? 0), 0);
+  const max = Math.max(1, ...SEVERITIES.map((s) => counts[s] ?? 0));
+  return (
+    <Card>
+      <CardHeader title="Confirmed by severity" description={total ? `${total} confirmed in total` : 'No confirmed findings yet'} />
+      <ul className="px-4 pb-3">
+        {SEVERITIES.map((s: Severity) => {
+          const n = counts[s] ?? 0;
+          return (
+            <li key={s} className="grid grid-cols-[5rem_1fr_2rem] items-center gap-3 border-b border-ink-200 py-1.5 last:border-b-0">
+              <span className="text-sm font-semibold text-black">{humanize(s)}</span>
+              <span className="h-2 bg-ink-100" aria-hidden>
+                <span className="block h-2" style={{ width: `${(n / max) * 100}%`, backgroundColor: SEVERITY_COLOR[s] }} />
+              </span>
+              <span className={`text-right text-sm font-bold tabular-nums ${n ? 'text-black' : 'text-ink-300'}`}>{n}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+function QuickActions({ canAssess }: { canAssess: boolean }) {
   const actions = [
-    { href: pendingHref, label: 'Review waiting findings', help: 'Confirm, reject or mark false positive', icon: Bug, show: true },
-    { href: '/targets', label: 'Run an assessment', help: 'Pick a target and run every tool', icon: ShieldCheck, show: canAssess },
+    { href: '/targets', label: 'Run an assessment', help: 'Pick a target; every tool runs in one go', icon: ShieldCheck, show: canAssess },
     { href: '/reports', label: 'Open a report', help: 'Confirmed and fixed findings, ready to print', icon: FileText, show: true },
   ].filter((a) => a.show);
   return (
     <Card>
-      <CardHeader title="Quick actions" />
-      <ul className="space-y-1 px-3 pb-3">
+      <CardHeader title="Next steps" />
+      <ul className="border-t border-black">
         {actions.map(({ href, label, help, icon: Icon }) => (
-          <li key={label}>
-            <Link href={href} className="group flex items-center gap-3 rounded-[var(--radius-control)] px-2 py-2.5 transition-colors hover:bg-ink-50">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-brand-50 text-brand-700">
-                <Icon className="h-[18px] w-[18px]" aria-hidden />
-              </span>
+          <li key={label} className="border-b border-ink-200 last:border-b-0">
+            <Link href={href} className="group flex items-center gap-3 px-4 py-2 transition-colors hover:bg-ink-50">
+              <Icon className="h-5 w-5 shrink-0 text-black" aria-hidden />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink-900 group-hover:text-brand-700">{label}</span>
+                <span className="block text-sm font-bold text-black">{label}</span>
                 <span className="block text-xs text-ink-500">{help}</span>
               </span>
-              <ChevronRight className="h-4 w-4 text-ink-300" aria-hidden />
+              <ArrowRight className="h-4 w-4 text-ink-400 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
           </li>
         ))}
@@ -141,7 +144,7 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
+        title="Overview"
         description="Where the assessment stands. Only confirmed findings count toward real severity."
         actions={
           <div className="w-64">
@@ -162,38 +165,41 @@ export default function DashboardPage() {
       {dash.error && <Alert kind="error">{dash.error}</Alert>}
       {dash.loading && !dash.data && <Spinner />}
       {dash.data && (
-        <div className="space-y-6">
-          <Lead pending={dash.data.totals.pending_review} href={`/findings?${q}status=PENDING`} />
-          <div className="grid grid-cols-3 gap-6 border-b border-ink-200 pb-6">
-            <Stat label="Confirmed, still open" value={dash.data.totals.open_confirmed} href={`/findings?${q}status=CONFIRMED`} tone="text-red-700" />
-            <Stat label="Fixed" value={dash.data.totals.fixed} href={`/findings?${q}status=FIXED`} tone="text-brand-700" />
-            <Stat label="All findings" value={dash.data.totals.findings} href={`/findings${targetId ? `?target_id=${targetId}` : ''}`} tone="text-ink-900" />
+        <div className="space-y-5">
+          <FigureStrip
+            items={[
+              { label: 'To verify', value: dash.data.totals.pending_review, tone: dash.data.totals.pending_review ? 'queue' : 'muted', href: `/findings?${q}status=PENDING` },
+              { label: 'Confirmed, open', value: dash.data.totals.open_confirmed, tone: dash.data.totals.open_confirmed ? 'signal' : 'muted', href: `/findings?${q}status=CONFIRMED` },
+              { label: 'Fixed', value: dash.data.totals.fixed, tone: dash.data.totals.fixed ? 'done' : 'muted', href: `/findings?${q}status=FIXED` },
+              { label: 'All findings', value: dash.data.totals.findings, href: `/findings${targetId ? `?target_id=${targetId}` : ''}` },
+            ]}
+          />
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <Queue targetId={targetId} />
+            <div className="space-y-4 lg:col-span-4">
+              <SeverityLedger counts={dash.data.findings.confirmed_by_severity} />
+              <QuickActions canAssess={can('ADMIN', 'ASSESSOR')} />
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <HBarChart
-              title="Confirmed findings by severity"
-              description="Final severity set by an assessor."
-              data={bars(dash.data.findings.confirmed_by_severity, SEVERITIES, humanize, (s) => SEVERITY_RAMP[s])}
-              emptyText="No confirmed findings yet"
-            />
-            <HBarChart
-              title="Waiting findings by suggested severity"
-              description="Suggested by tool rules or the AI. Not verified yet."
-              data={bars(dash.data.findings.pending_by_ai_severity, SEVERITIES, humanize, (s) => SEVERITY_RAMP[s])}
-              emptyText="Nothing waiting for review"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
-            <RecentFindings targetId={targetId} />
-            <QuickActions canAssess={can('ADMIN', 'ASSESSOR')} pendingHref={`/findings?${q}status=PENDING`} />
-          </div>
-          <h2 className="pt-2 font-display text-lg font-semibold text-ink-900">Breakdown</h2>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <HBarChart title="Findings by status" data={bars(dash.data.findings.by_status, FINDING_STATUSES)} />
-            <HBarChart title="Findings by category" data={bars(dash.data.findings.by_category, FINDING_CATEGORIES, (c) => CATEGORY_LABEL[c])} />
-            <HBarChart title="Findings by source" data={bars(dash.data.findings.by_source, FINDING_SOURCES, (k) => SOURCE_LABEL[k])} />
-            <HBarChart title="Scans by status" data={bars(dash.data.scans.by_status, SCAN_STATUSES)} emptyText="No scans yet" />
-          </div>
+
+          <section aria-labelledby="breakdown">
+            <h2 id="breakdown" className="mb-3 border-b-2 border-black pb-1.5 font-display text-xl font-extrabold text-black">
+              Breakdown
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <HBarChart
+                title="Waiting, by suggested severity"
+                description="Tool rules and the AI. Not verified yet."
+                data={bars(dash.data.findings.pending_by_ai_severity, SEVERITIES, humanize, (s) => SEVERITY_COLOR[s])}
+                emptyText="Nothing waiting"
+              />
+              <HBarChart title="Findings by status" data={bars(dash.data.findings.by_status, FINDING_STATUSES)} />
+              <HBarChart title="Findings by category" data={bars(dash.data.findings.by_category, FINDING_CATEGORIES, (c) => CHART_CATEGORY[c])} />
+              <HBarChart title="Findings by source" data={bars(dash.data.findings.by_source, FINDING_SOURCES, (k) => SOURCE_LABEL[k])} />
+              <HBarChart title="Scans by status" data={bars(dash.data.scans.by_status, SCAN_STATUSES)} emptyText="No scans yet" />
+            </div>
+          </section>
         </div>
       )}
     </>

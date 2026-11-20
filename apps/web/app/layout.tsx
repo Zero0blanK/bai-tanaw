@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
+import { Archivo } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/shared/auth-provider';
 import { ConfirmProvider } from '@/components/ui/confirm';
@@ -7,8 +7,8 @@ import { ToastProvider } from '@/components/ui/toast';
 import './globals.css';
 
 // Self-hosted at build time by next/font: no request to Google from the browser.
-const bricolage = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage', display: 'swap' });
-const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', display: 'swap' });
+// One neo-grotesk family; the width axis lets headlines run slightly condensed.
+const archivo = Archivo({ subsets: ['latin'], variable: '--font-archivo', display: 'swap', axes: ['wdth'] });
 
 export const metadata: Metadata = {
   title: { default: 'Tanaw', template: '%s · Tanaw' },
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${hanken.variable}`}>
+    <html lang="en" className={archivo.variable}>
       <body>
         <ToastProvider>
           <ConfirmProvider>

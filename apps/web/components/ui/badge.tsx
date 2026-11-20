@@ -1,22 +1,35 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Badge tones are only the colour of a small square marker; the label is always black text on white with a
+ * hairline, so meaning never depends on colour alone and a page full of badges stays quiet.
+ */
 export const TONES = {
-  slate: 'bg-ink-100 text-ink-700 ring-ink-200',
-  blue: 'bg-blue-50 text-blue-700 ring-blue-200',
-  green: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  amber: 'bg-amber-50 text-amber-800 ring-amber-200',
-  orange: 'bg-orange-50 text-orange-700 ring-orange-200',
-  red: 'bg-red-50 text-red-700 ring-red-200',
-  purple: 'bg-violet-50 text-violet-700 ring-violet-200',
-  brand: 'bg-brand-50 text-brand-700 ring-brand-200',
+  slate: '#b8b8b3',
+  blue: '#1f4fd1',
+  green: '#1e7b4b',
+  amber: '#e39b17',
+  orange: '#e8871e',
+  red: '#d52b1e',
+  purple: '#6b3fd1',
+  brand: '#000000',
 } as const;
 
 export type Tone = keyof typeof TONES;
 
-export function Badge({ tone = 'slate', children, className, title }: { tone?: Tone; children: ReactNode; className?: string; title?: string | undefined }) {
+export function Badge({ tone = 'slate', children, className, title, solid }: { tone?: Tone; children: ReactNode; className?: string; title?: string | undefined; solid?: boolean }) {
   return (
-    <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-semibold ring-1 ring-inset', TONES[tone], className)}>
+    <span
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-1.5 whitespace-nowrap border px-1.5 py-[3px] text-xs leading-none font-semibold',
+        solid ? 'border-transparent text-white' : 'border-ink-200 bg-white text-ink-800',
+        className,
+      )}
+      style={solid ? { backgroundColor: TONES[tone] } : undefined}
+    >
+      {!solid && <span aria-hidden className="h-2 w-2 shrink-0" style={{ backgroundColor: TONES[tone] }} />}
       {children}
     </span>
   );

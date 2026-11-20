@@ -13,7 +13,7 @@ export function JobBanner({ jobId, label, onDone }: { jobId: string | null; labe
   if (error) return <Alert kind="error">{label}: {error}</Alert>;
   if (running) {
     return (
-      <div role="status" className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+      <div role="status" className="flex items-center gap-2 border-l-[3px] border-black bg-ink-50 px-3 py-2 text-sm text-black">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         {label}: {job ? humanize(job.status) : 'Queued'}…
       </div>

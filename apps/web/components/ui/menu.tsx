@@ -77,7 +77,7 @@ export function Menu({
 
   const itemClass = (danger?: boolean) =>
     cn(
-      'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm outline-none transition-colors',
+      'flex w-full items-center gap-2.5 rounded-none px-2.5 py-2 text-left text-sm outline-none transition-colors',
       danger ? 'text-red-700 hover:bg-red-50 focus:bg-red-50' : 'text-ink-700 hover:bg-ink-100 focus:bg-ink-100 focus:text-ink-900',
     );
 

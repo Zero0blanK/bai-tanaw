@@ -25,7 +25,7 @@ export function Tabs({ tabs, value, onChange, label, className }: { tabs: TabIte
   }
 
   return (
-    <div role="tablist" aria-label={label} className={cn('mb-5 flex gap-1 overflow-x-auto border-b border-ink-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
+    <div role="tablist" aria-label={label} className={cn('mb-5 flex gap-5 overflow-x-auto border-b border-ink-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
       {tabs.map((tab, i) => {
         const selected = tab.value === value;
         return (
@@ -48,14 +48,14 @@ export function Tabs({ tabs, value, onChange, label, className }: { tabs: TabIte
               e.preventDefault();
             }}
             className={cn(
-              '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 pb-2.5 text-sm font-semibold transition-colors duration-[var(--duration-fast)]',
-              selected ? 'border-brand-600 text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-800',
+              '-mb-px flex items-center gap-2 whitespace-nowrap border-b-[3px] pb-2.5 text-sm font-bold transition-colors duration-[var(--duration-fast)]',
+              selected ? 'border-black text-black' : 'border-transparent text-ink-500 hover:text-black',
               !selected && tab.attention && 'text-amber-700',
             )}
           >
             {tab.label}
             {tab.count !== undefined && (
-              <span className={cn('rounded-full px-1.5 text-xs tabular-nums', selected ? 'bg-brand-50 text-brand-700' : 'bg-ink-100 text-ink-500')}>{tab.count}</span>
+              <span className={cn('text-xs tabular-nums', selected ? 'text-black' : 'text-ink-400')}>{tab.count}</span>
             )}
           </button>
         );

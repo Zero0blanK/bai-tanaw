@@ -202,7 +202,7 @@ export default function ScanDetailPage() {
                     setType(t);
                     setPage(1);
                   }}
-                  className={cn('rounded-full px-3 py-1 text-xs font-medium', type === t ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-700 hover:bg-ink-200')}
+                  className={cn('border px-3 py-1 text-xs font-bold', type === t ? 'border-black bg-black text-white' : 'border-ink-300 bg-white text-ink-700 hover:bg-ink-200')}
                 >
                   {t ? humanize(t) : 'All'} ({n})
                 </button>
