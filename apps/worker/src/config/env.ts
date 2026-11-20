@@ -25,6 +25,8 @@ const EnvSchema = z.object({
   // Provider, model and API key are set by an admin in Settings (app_settings, key encrypted with this).
   SETTINGS_ENCRYPTION_KEY: z.string().min(32, 'must be at least 32 characters (run npm run env:init)'),
   OLLAMA_URL: z.url().default('http://localhost:11434'),
+  /** Same cap as the API: AI jobs per user per day (Philippine time). Automatic interpretations count too. */
+  AI_DAILY_LIMIT: z.coerce.number().int().min(0).default(20),
   AI_MAX_INPUT_CHARS: z.coerce.number().int().min(1000).max(100_000).default(12_000),
 
   STORAGE_LOCAL_DIR: z.string().default('./storage'),

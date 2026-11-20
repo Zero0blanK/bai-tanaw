@@ -2,7 +2,7 @@
 // only an assessor can confirm them. Analysis + findings + evidence are written in one transaction.
 
 import type { Prisma } from '@prisma/client';
-import { InterpretJsonSchema, InterpretSchema } from '@tanaw/shared';
+import { DEDUP_STATUSES, InterpretJsonSchema, InterpretSchema, normalizeFindingTitle } from '@tanaw/shared';
 import { redact } from '@tanaw/shared/node';
 import { prisma } from '../config/prisma.js';
 import { askJson as defaultAskJson, type AskJson } from '../ai/provider.js';
@@ -10,12 +10,16 @@ import { INTERPRET_SYSTEM_PROMPT } from '../ai/prompts/interpret.js';
 
 export const MAX_RESULTS_IN_PROMPT = 150;
 export const MAX_LINE_CHARS = 600;
+/** Existing findings listed to the AI so it doesn't repeat them. */
+export const MAX_KNOWN_FINDINGS = 60;
 
 export interface InterpretOutcome {
   analysis_id: string;
   findings_created: number;
   finding_ids: string[];
   ignored_refs: string[];
+  /** AI findings dropped because the same problem is already recorded for the target. */
+  skipped_duplicates: number;
 }
 
 export async function runInterpret(scanId: string, createdBy: string | null, askJson: AskJson = defaultAskJson): Promise<InterpretOutcome> {
@@ -41,10 +45,28 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
   const shown = scan._count.results > MAX_RESULTS_IN_PROMPT ? ` (first ${MAX_RESULTS_IN_PROMPT} shown)` : '';
   const header = `Tool: ${scan.tool} (source: ${scan.source})\nTarget: ${scan.target.name} ${scan.target.base_url}\nResults: ${scan._count.results}${shown}`;
 
+  // Tool rules (and earlier runs) may already have recorded some problems; tell the AI so it adds what they missed.
+  const known = await prisma.finding.findMany({
+    where: { target_id: scan.target_id, status: { in: [...DEDUP_STATUSES] } },
+    select: { title: true, affected_asset: true, fingerprint: true },
+    orderBy: { created_at: 'desc' },
+    take: 500,
+  });
+  const knownTitles = new Set(known.map((f) => normalizeFindingTitle(f.title)));
+  const knownFingerprints = new Set(known.map((f) => f.fingerprint).filter(Boolean));
+  const context =
+    known.length > 0
+      ? `Findings already recorded for this target. Do not report them again; report only problems they do not cover:\n${known
+          .slice(0, MAX_KNOWN_FINDINGS)
+          .map((f) => `- ${f.title} (${f.affected_asset})`)
+          .join('\n')}`
+      : undefined;
+
   const ai = await askJson({
     task: 'interpret',
     system: INTERPRET_SYSTEM_PROMPT,
     untrusted: `${header}\n${lines.join('\n')}`,
+    context,
     schema: InterpretSchema,
     jsonSchema: InterpretJsonSchema,
   });
@@ -66,7 +88,15 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
     });
 
     const findingIds: string[] = [];
+    let skipped = 0;
     for (const item of ai.result.findings) {
+      const normalized = normalizeFindingTitle(item.title);
+      const fingerprint = `ai:${normalized}`.slice(0, 300);
+      if (knownTitles.has(normalized) || knownFingerprints.has(fingerprint)) {
+        skipped += 1;
+        continue;
+      }
+      knownTitles.add(normalized);
       const finding = await tx.finding.create({
         data: {
           target_id: scan.target_id,
@@ -80,6 +110,7 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
           ai_severity: item.suggested_severity,
           owasp_top10: item.owasp_top10 || null,
           wstg_id: item.wstg_id || null,
+          fingerprint,
         },
       });
       findingIds.push(finding.id);
@@ -105,6 +136,6 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
       if (evidence.length > 0) await tx.evidence.createMany({ data: evidence });
     }
 
-    return { analysis_id: analysis.id, findings_created: findingIds.length, finding_ids: findingIds, ignored_refs: [...ignored] };
+    return { analysis_id: analysis.id, findings_created: findingIds.length, finding_ids: findingIds, ignored_refs: [...ignored], skipped_duplicates: skipped };
   });
 }

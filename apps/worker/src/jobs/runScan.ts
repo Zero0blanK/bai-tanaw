@@ -1,5 +1,5 @@
 // Runs one tool scan (RUN_CHECK, RUN_NMAP, RUN_ZAP): re-check scope, run the tool, store raw output,
-// then insert results and mark the scan DONE in one transaction.
+// then insert results, turn them into PENDING tool findings and mark the scan DONE, all in one transaction.
 
 import type { Prisma } from '@prisma/client';
 import { scopeRequestsForScan, type ScanParams, type ScanResultInput } from '@tanaw/shared';
@@ -9,6 +9,7 @@ import { logger } from '../config/logger.js';
 import { prisma } from '../config/prisma.js';
 import { storage } from '../config/storage.js';
 import { createScopeGuard, ScopeBlockedError, type ScopeGuard } from '../lib/scope.js';
+import { createToolFindings } from '../lib/toolFindings.js';
 import { runDnsLookup } from '../tools/dns.js';
 import type { ToolOutput } from '../tools/http.js';
 import { runHttpCheck } from '../tools/httpCheck.js';
@@ -63,7 +64,13 @@ async function runTool(tool: string, params: ScanParams, scanId: string, guard: 
 export interface ScanOutcome {
   status: 'DONE' | 'FAILED' | 'SKIPPED';
   results?: number;
+  findings_created?: number;
+  finding_ids?: string[];
+  /** Tool findings not created because the same problem is already recorded for the target. */
+  duplicates?: number;
   error?: string;
+  /** What the automatic AI interpretation needs to know about the scan. */
+  scan?: { id: string; tool: string; target_id: string; actor_id: string | null };
 }
 
 export async function runScan(scanId: string, deps: ToolDeps = defaultDeps): Promise<ScanOutcome> {
@@ -97,17 +104,31 @@ export async function runScan(scanId: string, deps: ToolDeps = defaultDeps): Pro
     const output = await runTool(scan.tool, params, scan.id, guard, deps);
     const rawKey = output.raw ? await storage.put(storageKeys.scanRaw(scan.target.id, scan.id, output.raw.ext), output.raw.content) : null;
 
-    await prisma.$transaction([
-      prisma.scanResult.createMany({
+    const findings = await prisma.$transaction(async (tx) => {
+      const rows = await tx.scanResult.createManyAndReturn({
         data: output.results.map((r) => ({ scan_id: scan.id, type: r.type, data: r.data as Prisma.InputJsonValue })),
-      }),
-      prisma.scan.update({
+        select: { id: true, type: true, data: true },
+      });
+      const created = await createToolFindings(
+        tx,
+        { id: scan.id, tool: scan.tool, target_id: scan.target.id, target_base_url: scan.target.base_url, actor_id: scan.started_by },
+        rows,
+      );
+      await tx.scan.update({
         where: { id: scan.id },
         data: { status: 'DONE', finished_at: new Date(), raw_output_path: rawKey, error: null },
-      }),
-    ]);
-    logger.info('Scan finished', { scan_id: scan.id, tool: scan.tool, results: output.results.length });
-    return { status: 'DONE', results: output.results.length };
+      });
+      return created;
+    });
+    logger.info('Scan finished', { scan_id: scan.id, tool: scan.tool, results: output.results.length, findings: findings.created });
+    return {
+      status: 'DONE',
+      results: output.results.length,
+      findings_created: findings.created,
+      finding_ids: findings.finding_ids,
+      duplicates: findings.duplicates,
+      scan: { id: scan.id, tool: scan.tool, target_id: scan.target.id, actor_id: scan.started_by },
+    };
   } catch (error) {
     const message = (error instanceof ScopeBlockedError ? error.message : (error as Error).message ?? String(error)).slice(0, 1000);
     await prisma.scan.update({ where: { id: scan.id }, data: { status: 'FAILED', error: message, finished_at: new Date() } });

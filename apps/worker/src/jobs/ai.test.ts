@@ -72,6 +72,20 @@ describe.skipIf(!hasTestDb)('AI jobs', () => {
     expect(done.result).toMatchObject({ analysis_id: analysis.id, findings_created: 1, ignored_refs: ['r99'] });
   });
 
+  it('INTERPRET tells the AI what is already recorded and drops findings it repeats anyway', async () => {
+    const { user, scan, target } = await seed();
+    await prisma.finding.create({
+      data: { target_id: target.id, title: 'Missing HSTS header', category: 'SECURITY_CONFIG', description: 'x', affected_asset: 'https://bayawjobs.riomar.dev', source: 'TOOL', fingerprint: 'header:strict-transport-security:https://bayawjobs.riomar.dev' },
+    });
+    const job = await prisma.job.create({ data: { type: 'INTERPRET', ref_id: scan.id, created_by: user.id } });
+    const ask = fakeAsk(interpretReply);
+    await processJob(job.id, { attempt: 1, maxAttempts: 2, askJson: ask.fn });
+
+    expect(ask.calls[0]?.context).toContain('- Missing HSTS header (https://bayawjobs.riomar.dev)');
+    expect(await prisma.finding.count({ where: { source: 'AI' } })).toBe(0);
+    expect((await prisma.job.findUniqueOrThrow({ where: { id: job.id } })).result).toMatchObject({ findings_created: 0, skipped_duplicates: 1 });
+  });
+
   it('INTERPRET with an empty reply creates no findings but still records the analysis', async () => {
     const { user, scan } = await seed();
     const job = await prisma.job.create({ data: { type: 'INTERPRET', ref_id: scan.id, created_by: user.id } });

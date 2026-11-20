@@ -5,6 +5,7 @@ import { AiBadOutputError, AiProviderError } from '../ai/errors.js';
 import type { AskJson } from '../ai/provider.js';
 import { logger } from '../config/logger.js';
 import { prisma } from '../config/prisma.js';
+import { queueAutoInterpret } from '../lib/autoInterpret.js';
 import { runInterpret } from './interpret.js';
 import { runRemediate } from './remediate.js';
 import { runScan, type ToolDeps } from './runScan.js';
@@ -15,6 +16,7 @@ export interface ProcessContext {
   maxAttempts: number;
   tools?: ToolDeps;
   askJson?: AskJson;
+  autoInterpret?: typeof queueAutoInterpret;
 }
 
 /** Only provider hiccups and malformed replies are worth a retry; everything else fails at once. */
@@ -42,9 +44,26 @@ export async function processJob(jobId: string, ctx: ProcessContext): Promise<{ 
         // Tool failures are recorded on the scan; the job itself completed its work either way.
         const outcome = await runScan(job.ref_id, ctx.tools);
         const failed = outcome.status === 'FAILED';
+        // The AI reads every finished scan on its own; a skip (no key, cap reached…) is recorded, not an error.
+        const ai =
+          outcome.status === 'DONE' && outcome.scan
+            ? await (ctx.autoInterpret ?? queueAutoInterpret)({ ...outcome.scan, results: outcome.results ?? 0 }).catch((error: unknown) => ({
+                queued: false as const,
+                reason: `auto interpretation failed: ${(error as Error).message}`.slice(0, 300),
+              }))
+            : null;
+        const result =
+          outcome.status === 'DONE'
+            ? { results: outcome.results ?? 0, findings_created: outcome.findings_created ?? 0, finding_ids: outcome.finding_ids ?? [], duplicates: outcome.duplicates ?? 0, ai }
+            : undefined;
         await prisma.job.update({
           where: { id: job.id },
-          data: { status: failed ? 'FAILED' : 'COMPLETED', failed_reason: outcome.error ?? null, finished_at: new Date() },
+          data: {
+            status: failed ? 'FAILED' : 'COMPLETED',
+            failed_reason: outcome.error ?? null,
+            finished_at: new Date(),
+            ...(result ? { result: result as unknown as Prisma.InputJsonValue } : {}),
+          },
         });
         return { status: failed ? 'FAILED' : 'COMPLETED' };
       }

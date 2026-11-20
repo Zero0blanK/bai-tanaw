@@ -42,6 +42,42 @@ describe.skipIf(!hasTestDb)('processJob (tool scans)', () => {
     expect(await prisma.job.findUniqueOrThrow({ where: { id: job.id } })).toMatchObject({ status: 'COMPLETED', attempts: 1 });
   });
 
+  it('turns the results into PENDING tool findings with evidence, without duplicates on a re-scan', async () => {
+    const { scan, job, target, user } = await queueScan({ url: `${srv.url}/` });
+    const auto: unknown[] = [];
+    await processJob(job.id, { attempt: 1, maxAttempts: 1, autoInterpret: async (s) => (auto.push(s), { queued: false, reason: 'test' }) });
+
+    const findings = await prisma.finding.findMany({ where: { scan_id: scan.id }, include: { evidence: true } });
+    const titles = findings.map((f) => f.title);
+    expect(titles).toContain('Missing Content-Security-Policy header');
+    expect(titles).not.toContain('Missing clickjacking protection (X-Frame-Options)'); // the server sends it
+    expect(titles).not.toContain('Missing Strict-Transport-Security (HSTS) header'); // plain HTTP target
+    for (const f of findings) {
+      expect(f).toMatchObject({ source: 'TOOL', status: 'PENDING', final_severity: null });
+      expect(f.fingerprint).toBeTruthy();
+      expect(f.evidence.length).toBeGreaterThan(0);
+      expect(f.evidence[0]).toMatchObject({ type: 'TOOL_OUTPUT' });
+    }
+    const done = await prisma.job.findUniqueOrThrow({ where: { id: job.id } });
+    expect(done.result).toMatchObject({ findings_created: findings.length, duplicates: 0, ai: { queued: false, reason: 'test' } });
+    expect(auto).toEqual([{ id: scan.id, tool: 'HTTP_CHECK', target_id: target.id, actor_id: user.id, results: expect.any(Number) }]);
+
+    // Same scan again: nothing new.
+    const again = await prisma.scan.create({ data: { target_id: target.id, tool: 'HTTP_CHECK', source: 'WORKER', params: { url: `${srv.url}/` }, started_by: user.id } });
+    const job2 = await prisma.job.create({ data: { type: 'RUN_CHECK', ref_id: again.id, created_by: user.id } });
+    await processJob(job2.id, { attempt: 1, maxAttempts: 1, autoInterpret: async () => ({ queued: false, reason: 'test' }) });
+    expect(await prisma.finding.count({ where: { target_id: target.id } })).toBe(findings.length);
+    expect((await prisma.job.findUniqueOrThrow({ where: { id: job2.id } })).result).toMatchObject({ findings_created: 0, duplicates: findings.length });
+  });
+
+  it('skips the automatic AI interpretation when no API key is set', async () => {
+    const { job } = await queueScan({ url: `${srv.url}/` });
+    await processJob(job.id, { attempt: 1, maxAttempts: 1 });
+    const done = await prisma.job.findUniqueOrThrow({ where: { id: job.id } });
+    expect(done.result).toMatchObject({ ai: { queued: false, reason: expect.stringMatching(/API key/) } });
+    expect(await prisma.job.count({ where: { type: 'INTERPRET' } })).toBe(0);
+  });
+
   it('re-checks scope at run time: a rule added after queueing blocks the scan and is audited', async () => {
     const { target, scan, job, user } = await queueScan({ url: `${srv.url}/` });
     await prisma.scopeRule.create({ data: { target_id: target.id, asset_type: 'HOST', value: 'localhost', in_scope: false } });

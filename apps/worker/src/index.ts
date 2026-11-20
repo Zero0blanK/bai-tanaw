@@ -8,6 +8,7 @@ import { logger } from './config/logger.js';
 import { prisma } from './config/prisma.js';
 import { createRedisConnection } from './config/redis.js';
 import { processJob } from './jobs/processJob.js';
+import { closeQueue } from './lib/queue.js';
 
 const connection = createRedisConnection();
 
@@ -45,6 +46,7 @@ worker.on('ready', () => {
 async function shutdown(signal: string): Promise<void> {
   logger.info('Shutting down', { signal });
   await worker.close();
+  await closeQueue();
   await connection.quit();
   await prisma.$disconnect();
   process.exit(0);
