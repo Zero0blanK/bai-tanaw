@@ -41,7 +41,8 @@ export function ResultSummary({ type, data }: { type: ScanResultType; data: Data
           <span className="text-xs">Allow-Origin</span> <code className="text-xs">{s(data.allow_origin)}</code>
           {data.reflects_foreign_origin ? <Badge tone="red">reflects foreign origin</Badge> : null}
           {data.wildcard ? <Badge tone="amber">wildcard</Badge> : null}
-          {data.allow_credentials ? <Badge tone="amber">credentials allowed</Badge> : null}
+          {/* Allow-Credentials only matters when an origin is actually allowed. */}
+          {data.allow_credentials && data.allow_origin ? <Badge tone="amber">credentials allowed</Badge> : null}
         </span>
       );
     case 'REDIRECT':

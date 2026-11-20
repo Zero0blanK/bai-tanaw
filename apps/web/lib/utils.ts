@@ -16,9 +16,25 @@ export function formatDate(value: string | Date | null | undefined): string {
   return value ? dateOnly.format(new Date(value)) : '-';
 }
 
+/** Enum values whose plain-English form isn't just lowercase words. */
+const SPECIAL: Record<string, string> = {
+  URL: 'URL',
+  HTTP_CHECK: 'HTTP check',
+  HTTP_EXCHANGE: 'HTTP exchange',
+  DNS: 'DNS',
+  DNS_RECORD: 'DNS record',
+  OPENAPI: 'OpenAPI',
+  NMAP: 'Nmap',
+  ZAP: 'ZAP',
+  AI: 'AI',
+  CORS: 'CORS',
+  ai_requested: 'AI requested',
+};
+
 /** "FALSE_POSITIVE" → "False positive" */
 export function humanize(value: string | null | undefined): string {
   if (!value) return '-';
+  if (SPECIAL[value]) return SPECIAL[value];
   const text = value.replace(/_/g, ' ').toLowerCase();
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

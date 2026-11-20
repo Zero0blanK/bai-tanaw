@@ -40,12 +40,13 @@ function ScopeTester({ targetId }: { targetId: string }) {
 
   return (
     <form onSubmit={check} className="flex flex-wrap items-end gap-2 border-t border-slate-100 px-5 py-4">
-      <Field label="Test the scope" htmlFor="scope-test" className="min-w-[16rem] flex-1" hint="A URL, a host, or host:port. Dry run, nothing is contacted.">
+      <Field label="Test the scope" htmlFor="scope-test" className="min-w-[16rem] flex-1">
         <Input id="scope-test" value={value} onChange={(e) => setValue(e.target.value)} placeholder="https://bayawjobs.riomar.dev/admin" />
       </Field>
       <Button type="submit" variant="secondary" disabled={!value.trim()}>
         Check
       </Button>
+      <p className="w-full text-xs text-slate-500">A URL, a host, or host:port. Dry run, nothing is contacted.</p>
       {result && (
         <div className="w-full">
           {result.ok ? <Alert kind="success">In scope.</Alert> : <Alert kind="warning">Out of scope: {result.reason}</Alert>}
