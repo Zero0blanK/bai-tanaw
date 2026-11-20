@@ -72,6 +72,27 @@ describe.skipIf(!hasTestDb)('AI jobs', () => {
     expect(done.result).toMatchObject({ analysis_id: analysis.id, findings_created: 1, ignored_refs: ['r99'] });
   });
 
+  it('INTERPRET stores the suggested CVSS (scored by Tanaw), the fix, and CVEs only from cited tool output', async () => {
+    const { user, scan } = await seed();
+    const cveResult = await prisma.scanResult.create({
+      data: { scan_id: scan.id, type: 'HEADER', data: { check: 'disclosure_header', url: 'https://bayawjobs.riomar.dev', header: 'server', value: 'nginx/1.18.0 (see CVE-2021-23017)' } },
+    });
+    const reply = {
+      findings: [
+        { ...interpretReply.findings[0], title: 'Missing HSTS header', cvss_vector: 'CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N', remediation: 'Send Strict-Transport-Security.', explanation: 'No HSTS; also CVE-2099-0001 made up.' },
+        { ...interpretReply.findings[0], title: 'Server version disclosed', evidence_refs: ['r3'], cvss_vector: 'CVSS:3.1/NOT-A-VECTOR', remediation: '' },
+      ],
+    };
+    const job = await prisma.job.create({ data: { type: 'INTERPRET', ref_id: scan.id, created_by: user.id } });
+    await processJob(job.id, { attempt: 1, maxAttempts: 2, askJson: fakeAsk(reply).fn });
+
+    const hsts = await prisma.finding.findFirstOrThrow({ where: { title: 'Missing HSTS header' } });
+    expect(hsts).toMatchObject({ suggested_cvss_vector: 'CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N', suggested_cvss_score: 4.2, ai_severity: 'MEDIUM', suggested_remediation: 'Send Strict-Transport-Security.', cve_ids: [] });
+    const server = await prisma.finding.findFirstOrThrow({ where: { title: 'Server version disclosed' } });
+    expect(server).toMatchObject({ suggested_cvss_vector: null, suggested_cvss_score: null, ai_severity: 'LOW', suggested_remediation: null, cve_ids: ['CVE-2021-23017'] });
+    expect(cveResult.id).toBeTruthy();
+  });
+
   it('INTERPRET tells the AI what is already recorded and drops findings it repeats anyway', async () => {
     const { user, scan, target } = await seed();
     await prisma.finding.create({

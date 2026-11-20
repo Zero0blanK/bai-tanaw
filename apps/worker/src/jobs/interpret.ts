@@ -2,7 +2,7 @@
 // only an assessor can confirm them. Analysis + findings + evidence are written in one transaction.
 
 import type { Prisma } from '@prisma/client';
-import { DEDUP_STATUSES, InterpretJsonSchema, InterpretSchema, normalizeFindingTitle } from '@tanaw/shared';
+import { checkSuggestedVector, cvssSeverity, DEDUP_STATUSES, extractCveIds, InterpretJsonSchema, InterpretSchema, normalizeFindingTitle } from '@tanaw/shared';
 import { redact } from '@tanaw/shared/node';
 import { prisma } from '../config/prisma.js';
 import { askJson as defaultAskJson, type AskJson } from '../ai/provider.js';
@@ -97,6 +97,13 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
         continue;
       }
       knownTitles.add(normalized);
+      // Suggestions: the AI's vector only if Tanaw can score it (then the severity follows the score), and CVEs only
+      // from the cited tool output, never from the AI's own text.
+      const cvss = checkSuggestedVector(item.cvss_vector);
+      const citedData = [...new Set(item.evidence_refs.map((r) => r.trim().toLowerCase()))].flatMap((ref) => {
+        const result = refs.get(ref);
+        return result ? [result.data] : [];
+      });
       const finding = await tx.finding.create({
         data: {
           target_id: scan.target_id,
@@ -107,7 +114,11 @@ export async function runInterpret(scanId: string, createdBy: string | null, ask
           affected_asset: item.affected_asset,
           source: 'AI',
           status: 'PENDING', // never anything else from AI (AGENT.md §7.2)
-          ai_severity: item.suggested_severity,
+          ai_severity: cvss.score !== null ? cvssSeverity(cvss.score) : item.suggested_severity,
+          suggested_cvss_vector: cvss.vector,
+          suggested_cvss_score: cvss.score,
+          suggested_remediation: (item.remediation || '').trim() || null,
+          cve_ids: extractCveIds(...citedData),
           owasp_top10: item.owasp_top10 || null,
           wstg_id: item.wstg_id || null,
           fingerprint,
