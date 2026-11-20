@@ -185,8 +185,30 @@ async function main() {
     const scan = status(await call('GET', `/scans/${res.body.data.scan.id}`, { token: ctx.viewer }), 200).body.data;
     expect(scan.status === 'DONE' && (scan.result_counts.HEADER ?? 0) >= 9, `scan ${scan.status} with ${JSON.stringify(scan.result_counts)}`);
     ctx.httpScan = scan;
+    ctx.httpJob = job;
     const missing = scan.results.filter((r) => r.data.check === 'security_header' && !r.data.present).map((r) => r.data.header);
     return missing.length ? `missing headers: ${missing.join(', ')}` : 'all security headers present';
+  });
+  await check('T6', 'A finished scan becomes tool findings and queues the AI on its own', async () => {
+    if (!ctx.httpJob) return { skip: 'no finished HTTP check' };
+    const out = ctx.httpJob.result ?? {};
+    expect(typeof out.findings_created === 'number' && typeof out.duplicates === 'number', `job result ${JSON.stringify(out)}`);
+    expect(out.ai && typeof out.ai.queued === 'boolean', 'no automatic AI decision recorded');
+    const findings = status(await call('GET', `/findings?target_id=${ctx.target.id}&source=TOOL`, { token: ctx.assessor }), 200).body.data;
+    const fromScan = findings.filter((f) => f.scan_id === ctx.httpScan.id);
+    expect(fromScan.length === out.findings_created, `${fromScan.length} tool findings listed, job says ${out.findings_created}`);
+    expect(fromScan.every((f) => f.status === 'PENDING'), 'a tool finding is not PENDING');
+    return `${out.findings_created} tool finding(s), ${out.duplicates} already known; AI ${out.ai.queued ? 'queued' : `skipped (${out.ai.reason})`}`;
+  });
+  await check('T7', 'Run full assessment queues every tool in one go', async () => {
+    const res = status(await call('POST', `/targets/${ctx.target.id}/scans/all`, { token: ctx.assessor, body: {} }), 202);
+    const tools = res.body.data.runs.map((r) => r.scan.tool);
+    const skipped = res.body.data.skipped.map((s) => s.tool);
+    expect(tools.length + skipped.length === 5, `ran ${tools.join(',')} skipped ${skipped.join(',')}`);
+    for (const r of res.body.data.runs) await waitForJob(ctx.assessor, r.job.id, 300_000);
+    const summary = status(await call('GET', `/targets/${ctx.target.id}/assessment`, { token: ctx.viewer }), 200).body.data;
+    expect(summary.batch_id === res.body.data.batch_id, 'assessment summary is not the latest run');
+    return `ran ${tools.join(', ')}${skipped.length ? `; skipped ${skipped.join(', ')}` : ''}`;
   });
   await check('T2', 'DNS lookup completes', async () => {
     const res = status(await call('POST', `/targets/${ctx.target.id}/scans`, { token: ctx.assessor, body: { tool: 'DNS' } }), 202);
@@ -235,6 +257,8 @@ async function main() {
     if (res.status === 503) return '503, AI not configured (expected until an admin saves a key in Settings)';
     status(res, 202);
     const job = await waitForJob(ctx.assessor, res.body.data.job.id, 120_000);
+    // A rate-limited or down provider is the provider's state, not Tanaw's: report it, don't fail the run.
+    if (job.status === 'FAILED' && /returned HTTP (429|5\d\d)/.test(job.failed_reason ?? '')) return { skip: `provider unavailable: ${job.failed_reason}` };
     expect(job.status === 'COMPLETED', `AI job ${job.status}: ${job.failed_reason}`);
     const findings = status(await call('GET', `/findings?target_id=${ctx.target.id}&source=AI`, { token: ctx.assessor }), 200).body.data;
     expect(findings.every((f) => f.status === 'PENDING'), 'an AI finding is not PENDING');
