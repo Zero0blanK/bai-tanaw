@@ -21,7 +21,7 @@ import type { AiAnalysis, Job, ScanDetail } from '@/types/api';
 
 function InterpretPanel({ scan, onDone }: { scan: ScanDetail; onDone: () => void }) {
   const { can } = useAuth();
-  const usage = useApi<{ used: number; limit: number; remaining: number }>('/ai/usage');
+  const usage = useApi<{ used: number; limit: number; remaining: number; configured: boolean }>('/ai/usage');
   const analyses = useApi<AiAnalysis[]>(`/scans/${scan.id}/ai`);
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<Job['result']>(null);
@@ -64,6 +64,18 @@ function InterpretPanel({ scan, onDone }: { scan: ScanDetail; onDone: () => void
           <p className="text-xs text-slate-500">
             AI calls today: {usage.data.used} of {usage.data.limit} used.
           </p>
+        )}
+        {usage.data && !usage.data.configured && (
+          <Alert kind="warning">
+            AI isn&apos;t set up yet.{' '}
+            {can('ADMIN') ? (
+              <Link href="/settings" className="underline">
+                Add the API key in Settings.
+              </Link>
+            ) : (
+              'An admin can add the API key in Settings.'
+            )}
+          </Alert>
         )}
         {error && <Alert kind="error">{error}</Alert>}
         <JobBanner

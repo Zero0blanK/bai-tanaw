@@ -19,6 +19,7 @@ const ACTIONS = [
   'target_created', 'target_updated', 'scope_rule_added', 'scope_rule_deleted', 'scope_blocked',
   'scan_started', 'report_imported', 'ai_requested',
   'finding_created', 'finding_verified', 'remediation_set', 'evidence_added', 'report_exported',
+  'settings_updated',
 ];
 
 function tone(action: string): Tone {

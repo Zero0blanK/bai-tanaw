@@ -53,7 +53,7 @@ export function refreshSession<U>(): Promise<Session<U> | null> {
 }
 
 export interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   form?: FormData;
   query?: Record<string, string | number | undefined | null>;

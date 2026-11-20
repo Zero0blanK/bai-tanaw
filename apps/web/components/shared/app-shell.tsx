@@ -1,7 +1,7 @@
 'use client';
 
 import type { Role } from '@tanaw/shared';
-import { Bug, FileClock, KeyRound, LayoutDashboard, LogOut, ShieldCheck, Target, Users } from 'lucide-react';
+import { Bug, FileClock, KeyRound, LayoutDashboard, LogOut, Settings, ShieldCheck, Target, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -15,6 +15,7 @@ const NAV: Array<{ href: string; label: string; icon: typeof Target; roles?: Rol
   { href: '/findings', label: 'Findings', icon: Bug },
   { href: '/users', label: 'Users', icon: Users, roles: ['ADMIN'] },
   { href: '/audit', label: 'Audit log', icon: FileClock, roles: ['ADMIN'] },
+  { href: '/settings', label: 'Settings', icon: Settings, roles: ['ADMIN'] },
   { href: '/account', label: 'Account', icon: KeyRound },
 ];
 
