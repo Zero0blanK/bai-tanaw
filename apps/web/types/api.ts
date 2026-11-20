@@ -62,7 +62,7 @@ export interface Scan {
   tool: ScanTool;
   source: ScanSource;
   status: ScanStatus;
-  params: { url?: string; host?: string; ports?: string; filename?: string } | null;
+  params: { url?: string; host?: string; ports?: string; filename?: string; discover?: boolean; found_url?: string } | null;
   raw_output_path: string | null;
   error: string | null;
   started_at: string | null;

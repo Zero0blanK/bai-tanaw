@@ -20,7 +20,8 @@ import type { Scan, Target } from '@/types/api';
 function scanSubject(scan: Scan): string {
   const p = scan.params ?? {};
   if (p.filename) return p.filename;
-  if (p.url) return p.url;
+  if (p.found_url) return p.found_url;
+  if (p.url) return p.discover ? `${p.url} and other spec paths` : p.url;
   if (p.host) return p.ports ? `${p.host} : ${p.ports}` : p.host;
   return '-';
 }

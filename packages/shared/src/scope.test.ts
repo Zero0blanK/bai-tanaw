@@ -7,6 +7,7 @@ import {
   isSafeNmapPorts,
   isValidPortSpec,
   normalizeHost,
+  openApiCandidates,
   parseAllowedHosts,
   parseHttpUrl,
   portInRange,
@@ -170,5 +171,27 @@ describe('checkScope', () => {
 
   it('15. an empty allowlist blocks everything', () => {
     expect(checkScope(target(), { url: 'https://bayawjobs.riomar.dev/' }, []).ok).toBe(false);
+  });
+});
+
+describe('openApiCandidates', () => {
+  it("tries the target's own origin first, then in-scope API hosts, never out-of-scope ones", () => {
+    const urls = openApiCandidates('https://bayawjobs.riomar.dev', [
+      { asset_type: 'HOST', value: 'bayawjobs.riomar.dev', in_scope: true },
+      { asset_type: 'HOST', value: 'cdn.riomar.dev', in_scope: true },
+      { asset_type: 'HOST', value: 'bayawjobs-api.riomar.dev', in_scope: true },
+      { asset_type: 'HOST', value: 'admin.riomar.dev', in_scope: false },
+      { asset_type: 'PORT_RANGE', value: '443', in_scope: true },
+    ]);
+    expect(urls[0]).toBe('https://bayawjobs.riomar.dev/api/docs/openapi.json');
+    const origins = [...new Set(urls.map((u) => new URL(u).origin))];
+    expect(origins).toEqual(['https://bayawjobs.riomar.dev', 'https://bayawjobs-api.riomar.dev', 'https://cdn.riomar.dev']);
+    expect(urls).toContain('https://bayawjobs-api.riomar.dev/api/docs/openapi.json');
+    expect(urls.some((u) => u.includes('admin.riomar.dev'))).toBe(false);
+  });
+
+  it('keeps the scheme and port of a local target', () => {
+    expect(openApiCandidates('http://host.docker.internal:8787', [])[0]).toBe('http://host.docker.internal:8787/api/docs/openapi.json');
+    expect(openApiCandidates('not a url', [])).toEqual([]);
   });
 });

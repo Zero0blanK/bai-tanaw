@@ -4,7 +4,7 @@ import { fakeFetch, startServer } from '../test/helpers.js';
 import { runDnsLookup, type DnsResolver } from './dns.js';
 import { CORS_PROBE_ORIGIN, runHttpCheck } from './httpCheck.js';
 import { buildNmapArgs, runNmap } from './nmap.js';
-import { runOpenApiImport } from './openapi.js';
+import { discoverOpenApi, runOpenApiImport } from './openapi.js';
 import { runZap } from './zap.js';
 
 const samples = new URL('../../../../samples/reports/', import.meta.url);
@@ -86,6 +86,34 @@ describe('runDnsLookup', () => {
   });
 });
 
+describe('discoverOpenApi', () => {
+  const spec = { openapi: '3.0.3', paths: { '/api/jobs': { get: {} } } };
+
+  it('skips 404s and HTML pages, and imports the first real spec, reporting where it was', async () => {
+    const fetch = fakeFetch([
+      [(u) => u.hostname === 'bayawjobs.riomar.dev' && u.pathname === '/openapi.json', () => new Response('<html>app shell</html>', { status: 200 })],
+      [(u) => u.hostname === 'bayawjobs-api.riomar.dev' && u.pathname === '/api/docs/openapi.json', () => Response.json(spec)],
+    ]);
+    const out = await discoverOpenApi(
+      ['https://bayawjobs.riomar.dev/api/docs/openapi.json', 'https://bayawjobs.riomar.dev/openapi.json', 'https://bayawjobs-api.riomar.dev/api/docs/openapi.json'],
+      { allows: async () => true, fetchImpl: fetch.impl },
+    );
+    expect(out.params).toEqual({ found_url: 'https://bayawjobs-api.riomar.dev/api/docs/openapi.json' });
+    expect(out.results).toHaveLength(1);
+    expect(fetch.calls).toHaveLength(3);
+  });
+
+  it('never requests a candidate the scope guard refuses, and explains what it tried', async () => {
+    const fetch = fakeFetch([]);
+    const err = await discoverOpenApi(['https://bayawjobs.riomar.dev/openapi.json', 'https://evil.example/openapi.json'], {
+      allows: async (r) => !r.url.includes('evil'),
+      fetchImpl: fetch.impl,
+    }).catch((e: Error) => e);
+    expect(fetch.calls.map((u) => u.hostname)).toEqual(['bayawjobs.riomar.dev']);
+    expect((err as Error).message).toMatch(/No OpenAPI spec found.*Tried 2 URLs.*HTTP 404.*out of scope.*Advanced/);
+  });
+});
+
 describe('runOpenApiImport', () => {
   it('lists endpoints with auth and admin flags', async () => {
     const spec = {
@@ -110,7 +138,7 @@ describe('runOpenApiImport', () => {
 
   it('rejects non-200 and non-OpenAPI responses', async () => {
     await expect(runOpenApiImport('https://x/spec', fakeFetch([[() => true, () => new Response('', { status: 404 })]]).impl)).rejects.toThrow(/404/);
-    await expect(runOpenApiImport('https://x/spec', fakeFetch([[() => true, () => Response.json({ hello: 1 })]]).impl)).rejects.toThrow(/paths/);
+    await expect(runOpenApiImport('https://x/spec', fakeFetch([[() => true, () => Response.json({ hello: 1 })]]).impl)).rejects.toThrow(/not an OpenAPI document/);
   });
 });
 

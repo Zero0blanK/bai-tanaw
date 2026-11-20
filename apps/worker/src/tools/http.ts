@@ -13,4 +13,6 @@ export interface ToolOutput<R> {
   results: R[];
   /** Raw tool output to keep as evidence (stored under storage/targets/<id>/scans/). */
   raw?: { ext: 'xml' | 'json' | 'txt'; content: string };
+  /** Facts learned while running (e.g. where the OpenAPI spec was found), merged into scans.params. */
+  params?: Record<string, string>;
 }

@@ -57,7 +57,9 @@ describe.skipIf(!hasTestDb)('scans, jobs and imports', () => {
       expect(nmap.body.data.scan.params).toEqual({ host: 'bayawjobs.riomar.dev', ports: '80,443' });
       expect(nmap.body.data.job.type).toBe('RUN_NMAP');
       const openapi = await as(request(app).post(`/api/targets/${id}/scans`)).send({ tool: 'OPENAPI' });
-      expect(openapi.body.data.scan.params.url).toBe('https://bayawjobs.riomar.dev/api/docs/openapi.json');
+      expect(openapi.body.data.scan.params).toEqual({ url: 'https://bayawjobs.riomar.dev/api/docs/openapi.json', discover: true });
+      const explicit = await as(request(app).post(`/api/targets/${id}/scans`)).send({ tool: 'OPENAPI', url: 'https://bayawjobs.riomar.dev/spec.json' });
+      expect(explicit.body.data.scan.params).toEqual({ url: 'https://bayawjobs.riomar.dev/spec.json' });
       const zap = await as(request(app).post(`/api/targets/${id}/scans`)).send({ tool: 'ZAP' });
       expect(zap.body.data.job.type).toBe('RUN_ZAP');
     });

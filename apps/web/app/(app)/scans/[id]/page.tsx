@@ -177,7 +177,7 @@ export default function ScanDetailPage() {
             <DetailList
               items={[
                 ['Source', humanize(s.source)],
-                ['Subject', <span key="p" className="font-mono text-xs">{s.params?.url ?? s.params?.filename ?? [s.params?.host, s.params?.ports].filter(Boolean).join(' : ') ?? '-'}</span>],
+                ['Subject', <span key="p" className="font-mono text-xs">{s.params?.found_url ?? s.params?.url ?? s.params?.filename ?? [s.params?.host, s.params?.ports].filter(Boolean).join(' : ') ?? '-'}</span>],
                 ['Started by', s.starter?.name ?? '-'],
                 ['Created', formatDateTime(s.created_at)],
                 ['Finished', formatDateTime(s.finished_at)],

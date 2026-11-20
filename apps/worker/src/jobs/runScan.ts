@@ -2,7 +2,7 @@
 // then insert results, turn them into PENDING tool findings and mark the scan DONE, all in one transaction.
 
 import type { Prisma } from '@prisma/client';
-import { scopeRequestsForScan, type ScanParams, type ScanResultInput } from '@tanaw/shared';
+import { openApiCandidates, scopeRequestsForScan, type ScanParams, type ScanResultInput } from '@tanaw/shared';
 import { storageKeys } from '@tanaw/shared/node';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -14,13 +14,14 @@ import { runDnsLookup } from '../tools/dns.js';
 import type { ToolOutput } from '../tools/http.js';
 import { runHttpCheck } from '../tools/httpCheck.js';
 import { runNmap } from '../tools/nmap.js';
-import { runOpenApiImport } from '../tools/openapi.js';
+import { discoverOpenApi, runOpenApiImport } from '../tools/openapi.js';
 import { runZap } from '../tools/zap.js';
 
 export interface ToolDeps {
   httpCheck: typeof runHttpCheck;
   dns: typeof runDnsLookup;
   openapi: typeof runOpenApiImport;
+  openapiDiscover: typeof discoverOpenApi;
   nmap: typeof runNmap;
   zap: typeof runZap;
 }
@@ -29,17 +30,30 @@ const defaultDeps: ToolDeps = {
   httpCheck: runHttpCheck,
   dns: runDnsLookup,
   openapi: runOpenApiImport,
+  openapiDiscover: discoverOpenApi,
   nmap: runNmap,
   zap: runZap,
 };
 
-async function runTool(tool: string, params: ScanParams, scanId: string, guard: ScopeGuard, deps: ToolDeps): Promise<ToolOutput<ScanResultInput>> {
+async function runTool(
+  tool: string,
+  params: ScanParams,
+  scanId: string,
+  guard: ScopeGuard,
+  deps: ToolDeps,
+  target: { base_url: string; scope_rules: Array<{ asset_type: string; value: string; in_scope: boolean }> },
+): Promise<ToolOutput<ScanResultInput>> {
   switch (tool) {
     case 'HTTP_CHECK':
       return deps.httpCheck(params.url as string, { allows: (r) => guard.allows(r) });
     case 'DNS':
       return deps.dns(params.host as string);
     case 'OPENAPI':
+      if (params.discover) {
+        // The default URL first, then the usual spec paths on every in-scope host.
+        const candidates = [...new Set([params.url as string, ...openApiCandidates(target.base_url, target.scope_rules)])];
+        return deps.openapiDiscover(candidates, { allows: (r) => guard.allows(r) });
+      }
       return deps.openapi(params.url as string);
     case 'NMAP': {
       const out = await deps.nmap(params.host as string, params.ports as string, { bin: env.NMAP_BIN, timeoutMs: env.TOOL_TIMEOUT_MS });
@@ -101,7 +115,7 @@ export async function runScan(scanId: string, deps: ToolDeps = defaultDeps): Pro
     await guard.assertWithinTestWindow();
     await guard.assertAll(requests);
 
-    const output = await runTool(scan.tool, params, scan.id, guard, deps);
+    const output = await runTool(scan.tool, params, scan.id, guard, deps, scan.target);
     const rawKey = output.raw ? await storage.put(storageKeys.scanRaw(scan.target.id, scan.id, output.raw.ext), output.raw.content) : null;
 
     const findings = await prisma.$transaction(async (tx) => {
@@ -116,7 +130,13 @@ export async function runScan(scanId: string, deps: ToolDeps = defaultDeps): Pro
       );
       await tx.scan.update({
         where: { id: scan.id },
-        data: { status: 'DONE', finished_at: new Date(), raw_output_path: rawKey, error: null },
+        data: {
+          status: 'DONE',
+          finished_at: new Date(),
+          raw_output_path: rawKey,
+          error: null,
+          ...(output.params ? { params: { ...params, ...output.params } as Prisma.InputJsonValue } : {}),
+        },
       });
       return created;
     });

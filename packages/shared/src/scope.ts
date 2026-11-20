@@ -191,6 +191,37 @@ export interface ScanParams {
   filename?: string;
   /** Set when the scan is part of a "run all tools" assessment, shared by every scan of that run. */
   batch_id?: string;
+  /** OPENAPI only: no URL was given, so the worker looks for the spec (see openApiCandidates). */
+  discover?: boolean;
+  /** OPENAPI only: the URL the spec was actually found at (written by the worker). */
+  found_url?: string;
+}
+
+/** Where APIs usually publish their OpenAPI/Swagger document. Order matters: the first hit wins. */
+export const OPENAPI_PATHS = ['/api/docs/openapi.json', '/openapi.json', '/api/openapi.json', '/swagger.json', '/v3/api-docs', '/api-docs'] as const;
+const MAX_OPENAPI_ORIGINS = 6;
+
+/**
+ * Candidate spec URLs for a target: the usual paths on the target's own origin, then on every other host the scope
+ * rules mark in scope (a front end on one host often has its API on another, e.g. app.example and api.example).
+ * Hosts that look like APIs ("api" in the name) go first. Every candidate must still pass the scope check.
+ */
+export function openApiCandidates(baseUrl: string, rules: ReadonlyArray<{ asset_type: string; value: string; in_scope: boolean }>): string[] {
+  const base = parseHttpUrl(baseUrl);
+  if (!base) return [];
+  const origins: string[] = [base.origin];
+  const others: string[] = [];
+  for (const rule of rules) {
+    if (!rule.in_scope) continue;
+    if (rule.asset_type === 'HOST') others.push(`${base.protocol}//${normalizeHost(rule.value)}`);
+    if (rule.asset_type === 'URL') {
+      const u = parseHttpUrl(rule.value);
+      if (u) others.push(u.origin);
+    }
+  }
+  others.sort((a, b) => Number(/api/i.test(new URL(b).hostname)) - Number(/api/i.test(new URL(a).hostname)));
+  for (const o of others) if (!origins.includes(o)) origins.push(o);
+  return origins.slice(0, MAX_OPENAPI_ORIGINS).flatMap((origin) => OPENAPI_PATHS.map((path) => `${origin}${path}`));
 }
 
 export const MAX_NMAP_PORTS = 1024;

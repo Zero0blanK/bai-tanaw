@@ -112,6 +112,7 @@ describe.skipIf(!hasTestDb)('processJob (tool scans)', () => {
         httpCheck: notUsed,
         dns: notUsed,
         openapi: notUsed,
+        openapiDiscover: notUsed,
         zap: notUsed,
         nmap: async () => ({
           results: [{ type: 'PORT', data: { host: 'localhost', addresses: ['127.0.0.1'], protocol: 'tcp', port: 8787, state: 'open', reason: null } }],
@@ -136,6 +137,7 @@ describe.skipIf(!hasTestDb)('processJob (tool scans)', () => {
         httpCheck: notUsed,
         dns: notUsed,
         openapi: notUsed,
+        openapiDiscover: notUsed,
         zap: notUsed,
         nmap: async () => ({ results: [], hosts: [{ host: 'evil.example', port: 8787 }] }),
       },

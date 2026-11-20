@@ -49,7 +49,8 @@ function buildParams(tool: StartScanInput['tool'], input: StartScanInput, baseUr
     case 'ZAP':
       return { url: input.url ?? baseUrl };
     case 'OPENAPI':
-      return { url: input.url ?? `${base.origin}/api/docs/openapi.json` };
+      // Without a URL the worker searches the target's in-scope hosts for the spec; with one it uses only that.
+      return input.url ? { url: input.url } : { url: `${base.origin}/api/docs/openapi.json`, discover: true };
     case 'DNS':
       return { host: normalizeHost(input.host ?? base.hostname) };
     case 'NMAP': {
