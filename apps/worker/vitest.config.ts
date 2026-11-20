@@ -22,6 +22,7 @@ export default defineConfig({
       ASSESSMENT_ALLOWED_HOSTS: 'bayawjobs.riomar.dev,bayawjobs-api.riomar.dev,localhost,127.0.0.1',
       STORAGE_LOCAL_DIR: join(tmpdir(), 'tanaw-worker-test-storage'),
       NMAP_BIN: 'nmap-not-used-in-tests',
+      SETTINGS_ENCRYPTION_KEY: 'test-settings-key-0123456789abcdefghij',
     },
   },
 });

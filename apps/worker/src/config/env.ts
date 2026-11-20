@@ -22,14 +22,16 @@ const EnvSchema = z.object({
   /** Upper bound for one ZAP spider run, in minutes. */
   ZAP_SPIDER_MAX_MINUTES: z.coerce.number().int().min(1).max(60).default(5),
 
-  AI_PROVIDER: z.enum(['openai', 'ollama']).default('openai'),
-  OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
+  // Provider, model and API key are set by an admin in Settings (app_settings, key encrypted with this).
+  SETTINGS_ENCRYPTION_KEY: z.string().min(32, 'must be at least 32 characters (run npm run env:init)'),
   OLLAMA_URL: z.url().default('http://localhost:11434'),
-  OLLAMA_MODEL: z.string().default('llama3.1:8b'),
   AI_MAX_INPUT_CHARS: z.coerce.number().int().min(1000).max(100_000).default(12_000),
 
   STORAGE_LOCAL_DIR: z.string().default('./storage'),
+}).superRefine((e, ctx) => {
+  if (e.NODE_ENV === 'production' && e.SETTINGS_ENCRYPTION_KEY.startsWith('change-me')) {
+    ctx.addIssue({ code: 'custom', path: ['SETTINGS_ENCRYPTION_KEY'], message: 'production needs a random secret (run npm run env:init)' });
+  }
 });
 
 export type Env = z.infer<typeof EnvSchema> & { ALLOWED_HOSTS: string[] };

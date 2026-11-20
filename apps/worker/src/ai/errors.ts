@@ -1,7 +1,7 @@
-/** No API key / provider configured. Retrying won't help, so the job fails at once. */
+/** No usable API key (missing, undecryptable or rejected by the provider). Retrying won't help, so the job fails at once. */
 export class AiNotConfiguredError extends Error {
-  constructor() {
-    super('AI provider is not configured (set OPENAI_API_KEY, or AI_PROVIDER=ollama)');
+  constructor(message = 'AI is not configured. An admin can add the provider API key in Settings.') {
+    super(message);
     this.name = 'AiNotConfiguredError';
   }
 }

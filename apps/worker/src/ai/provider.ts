@@ -1,9 +1,13 @@
-// One entry point for both AI features. OpenAI (Structured Outputs, strict JSON schema) by default;
-// Ollama as a local fallback. The AI is read-only: it gets data and returns JSON, it has no tools.
+// One entry point for both AI features. OpenRouter or OpenAI (Structured Outputs, strict JSON schema), or Ollama.
+// The provider, model and API key come from Settings (app_settings; the key is stored encrypted and decrypted only
+// here, per job). The AI is read-only: it gets data and returns JSON, it has no tools.
 
+import type { AiProvider } from '@tanaw/shared';
+import { AI_SETTINGS_KEY, resolveAiSettings } from '@tanaw/shared/node';
 import type { z } from 'zod';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { prisma } from '../config/prisma.js';
 import { AiBadOutputError, AiNotConfiguredError, AiProviderError } from './errors.js';
 import { buildUserMessage } from './input.js';
 
@@ -24,7 +28,7 @@ export interface AskJsonOptions<T> {
 
 export interface AskJsonResult<T> {
   result: T;
-  provider: 'openai' | 'ollama';
+  provider: AiProvider;
   model: string;
   inputHash: string;
   tokensIn: number | null;
@@ -32,29 +36,35 @@ export interface AskJsonResult<T> {
 }
 
 export interface ProviderConfig {
-  provider: 'openai' | 'ollama';
-  openaiApiKey?: string | undefined;
-  openaiModel: string;
+  provider: AiProvider;
+  model: string;
+  /** Decrypted key; never logged. */
+  apiKey?: string | null | undefined;
+  /** Why the settings aren't usable, if they aren't. */
+  problem?: string | null | undefined;
   ollamaUrl: string;
-  ollamaModel: string;
   maxInputChars: number;
   fetchImpl?: typeof fetch;
 }
 
-export function configFromEnv(): ProviderConfig {
+/** Reads Settings from the database and decrypts the key. Called per job, so a new key applies at once. */
+export async function loadProviderConfig(): Promise<ProviderConfig> {
+  const row = await prisma.appSetting.findUnique({ where: { key: AI_SETTINGS_KEY } });
+  const resolved = resolveAiSettings(row, env.SETTINGS_ENCRYPTION_KEY);
   return {
-    provider: env.AI_PROVIDER,
-    openaiApiKey: env.OPENAI_API_KEY,
-    openaiModel: env.OPENAI_MODEL,
+    provider: resolved.provider,
+    model: resolved.model,
+    apiKey: resolved.apiKey,
+    problem: resolved.problem,
     ollamaUrl: env.OLLAMA_URL,
-    ollamaModel: env.OLLAMA_MODEL,
     maxInputChars: env.AI_MAX_INPUT_CHARS,
   };
 }
 
-/** Reasoning models (o-series, gpt-5*) reject a custom temperature. */
+/** Reasoning models (o-series, gpt-5*) reject a custom temperature. OpenRouter ids carry a vendor prefix. */
 export function supportsTemperature(model: string): boolean {
-  return !/^(o\d|gpt-5)/i.test(model);
+  const name = model.includes('/') ? model.slice(model.lastIndexOf('/') + 1) : model;
+  return !/^(o\d|gpt-5)/i.test(name);
 }
 
 interface RawReply {
@@ -64,12 +74,31 @@ interface RawReply {
   tokensOut: number | null;
 }
 
-async function callOpenAI(cfg: ProviderConfig, system: string, user: string, name: string, jsonSchema: Record<string, unknown>): Promise<RawReply> {
-  if (!cfg.openaiApiKey) throw new AiNotConfiguredError();
-  const model = cfg.openaiModel;
-  const res = await (cfg.fetchImpl ?? fetch)('https://api.openai.com/v1/chat/completions', {
+const CHAT_ENDPOINTS = {
+  openai: { url: 'https://api.openai.com/v1/chat/completions', label: 'OpenAI' },
+  openrouter: { url: 'https://openrouter.ai/api/v1/chat/completions', label: 'OpenRouter' },
+} as const;
+
+/** OpenAI and OpenRouter share the Chat Completions format. */
+async function callChatCompletions(
+  cfg: ProviderConfig,
+  provider: 'openai' | 'openrouter',
+  system: string,
+  user: string,
+  name: string,
+  jsonSchema: Record<string, unknown>,
+): Promise<RawReply> {
+  if (!cfg.apiKey) throw new AiNotConfiguredError(cfg.problem ?? undefined);
+  const { url, label } = CHAT_ENDPOINTS[provider];
+  const model = cfg.model;
+  const res = await (cfg.fetchImpl ?? fetch)(url, {
     method: 'POST',
-    headers: { authorization: `Bearer ${cfg.openaiApiKey}`, 'content-type': 'application/json' },
+    headers: {
+      authorization: `Bearer ${cfg.apiKey}`,
+      'content-type': 'application/json',
+      // OpenRouter shows this app name on its dashboard; it carries no user data.
+      ...(provider === 'openrouter' ? { 'x-title': 'Tanaw' } : {}),
+    },
     signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     body: JSON.stringify({
       model,
@@ -79,21 +108,28 @@ async function callOpenAI(cfg: ProviderConfig, system: string, user: string, nam
         { role: 'user', content: user },
       ],
       response_format: { type: 'json_schema', json_schema: { name, strict: true, schema: jsonSchema } },
+      // Only route to OpenRouter providers that honour response_format, or the strict schema would be ignored.
+      ...(provider === 'openrouter' ? { provider: { require_parameters: true } } : {}),
     }),
   });
   if (!res.ok) {
     // Log the provider's message, never the request (it carries the key).
     const detail = await res.text().catch(() => '');
-    logger.error('OpenAI request failed', { status: res.status, detail: detail.slice(0, 300) });
-    throw new AiProviderError(`OpenAI returned HTTP ${res.status}`);
+    logger.error(`${label} request failed`, { status: res.status, detail: detail.slice(0, 300) });
+    if (res.status === 401 || res.status === 403) {
+      throw new AiNotConfiguredError(`${label} rejected the API key (HTTP ${res.status}). An admin can replace it in Settings.`);
+    }
+    throw new AiProviderError(`${label} returned HTTP ${res.status}`);
   }
   const body = (await res.json()) as {
     model?: string;
+    error?: { message?: string };
     choices?: Array<{ message?: { content?: string | null; refusal?: string | null } }>;
     usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
+  if (body.error) throw new AiProviderError(`${label} error: ${String(body.error.message ?? 'unknown').slice(0, 200)}`);
   const message = body.choices?.[0]?.message;
-  if (message?.refusal) throw new AiProviderError(`OpenAI refused: ${message.refusal.slice(0, 200)}`);
+  if (message?.refusal) throw new AiProviderError(`${label} refused: ${message.refusal.slice(0, 200)}`);
   return {
     content: message?.content ?? '',
     model: body.model ?? model,
@@ -103,7 +139,7 @@ async function callOpenAI(cfg: ProviderConfig, system: string, user: string, nam
 }
 
 async function callOllama(cfg: ProviderConfig, system: string, user: string, jsonSchema: Record<string, unknown>): Promise<RawReply> {
-  const model = cfg.ollamaModel;
+  const model = cfg.model;
   const res = await (cfg.fetchImpl ?? fetch)(new URL('/api/chat', cfg.ollamaUrl), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -124,12 +160,13 @@ async function callOllama(cfg: ProviderConfig, system: string, user: string, jso
   return { content: body.message?.content ?? '', model, tokensIn: body.prompt_eval_count ?? null, tokensOut: body.eval_count ?? null };
 }
 
-export async function askJson<T>(options: AskJsonOptions<T>, cfg: ProviderConfig = configFromEnv()): Promise<AskJsonResult<T>> {
+export async function askJson<T>(options: AskJsonOptions<T>, config?: ProviderConfig): Promise<AskJsonResult<T>> {
+  const cfg = config ?? (await loadProviderConfig());
   const { message, inputHash, truncated } = buildUserMessage(options.untrusted, cfg.maxInputChars, options.context);
   const raw =
     cfg.provider === 'ollama'
       ? await callOllama(cfg, options.system, message, options.jsonSchema)
-      : await callOpenAI(cfg, options.system, message, `tanaw_${options.task}`, options.jsonSchema);
+      : await callChatCompletions(cfg, cfg.provider, options.system, message, `tanaw_${options.task}`, options.jsonSchema);
 
   let parsed: unknown;
   try {

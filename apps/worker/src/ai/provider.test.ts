@@ -52,10 +52,9 @@ describe('askJson', () => {
 
   const cfg = (over: Partial<ProviderConfig> = {}): ProviderConfig => ({
     provider: 'openai',
-    openaiApiKey: 'sk-test-key-not-real-000000',
-    openaiModel: 'gpt-4.1-mini',
+    apiKey: 'sk-test-key-not-real-000000',
+    model: 'gpt-4.1-mini',
     ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'llama3.1:8b',
     maxInputChars: 12_000,
     ...over,
   });
@@ -82,16 +81,39 @@ describe('askJson', () => {
     });
   });
 
+  it('calls OpenRouter with the same strict schema and only providers that honour it', async () => {
+    const { fetchImpl, requests } = openai({
+      model: 'openai/gpt-4.1-mini',
+      choices: [{ message: { content: JSON.stringify({ findings: [finding] }) } }],
+      usage: { prompt_tokens: 100, completion_tokens: 30 },
+    });
+    const out = await ask(cfg({ provider: 'openrouter', model: 'openai/gpt-4.1-mini', apiKey: 'sk-or-v1-test-not-real-0000', fetchImpl }));
+    expect(out).toMatchObject({ provider: 'openrouter', model: 'openai/gpt-4.1-mini', tokensIn: 100, tokensOut: 30 });
+    const req = requests[0];
+    expect(req?.url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(req?.headers.get('authorization')).toBe('Bearer sk-or-v1-test-not-real-0000');
+    expect(req?.headers.get('x-title')).toBe('Tanaw');
+    expect(req?.body).toMatchObject({
+      model: 'openai/gpt-4.1-mini',
+      provider: { require_parameters: true },
+      response_format: { type: 'json_schema', json_schema: { name: 'tanaw_interpret', strict: true } },
+    });
+  });
+
   it('omits temperature for reasoning models', async () => {
     expect(supportsTemperature('gpt-5-mini')).toBe(false);
     expect(supportsTemperature('o4-mini')).toBe(false);
+    expect(supportsTemperature('openai/gpt-5-mini')).toBe(false);
+    expect(supportsTemperature('anthropic/claude-sonnet-4')).toBe(true);
     const { fetchImpl, requests } = openai({ choices: [{ message: { content: '{"findings":[]}' } }] });
-    await ask(cfg({ fetchImpl, openaiModel: 'gpt-5-mini' }));
+    await ask(cfg({ fetchImpl, model: 'gpt-5-mini' }));
     expect(requests[0]?.body).not.toHaveProperty('temperature');
   });
 
   it('throws the right error for each failure', async () => {
-    await expect(ask(cfg({ openaiApiKey: undefined }))).rejects.toBeInstanceOf(AiNotConfiguredError);
+    await expect(ask(cfg({ apiKey: undefined }))).rejects.toBeInstanceOf(AiNotConfiguredError);
+    await expect(ask(cfg({ fetchImpl: openai({}, 401).fetchImpl }))).rejects.toBeInstanceOf(AiNotConfiguredError);
+    await expect(ask(cfg({ fetchImpl: openai({ error: { message: 'no credits' } }).fetchImpl }))).rejects.toBeInstanceOf(AiProviderError);
     await expect(ask(cfg({ fetchImpl: openai({}, 500).fetchImpl }))).rejects.toBeInstanceOf(AiProviderError);
     await expect(ask(cfg({ fetchImpl: openai({ choices: [{ message: { refusal: 'no' } }] }).fetchImpl }))).rejects.toBeInstanceOf(AiProviderError);
     await expect(ask(cfg({ fetchImpl: openai({ choices: [{ message: { content: 'not json' } }] }).fetchImpl }))).rejects.toBeInstanceOf(AiBadOutputError);
@@ -107,7 +129,7 @@ describe('askJson', () => {
       requests.push({ url: String(url), body: JSON.parse(String(init?.body)) as Record<string, unknown> });
       return Response.json({ message: { content: '{"findings":[]}' }, prompt_eval_count: 10, eval_count: 3 });
     }) as typeof fetch;
-    const out = await ask(cfg({ provider: 'ollama', openaiApiKey: undefined, fetchImpl }));
+    const out = await ask(cfg({ provider: 'ollama', model: 'llama3.1:8b', apiKey: undefined, fetchImpl }));
     expect(out).toMatchObject({ provider: 'ollama', model: 'llama3.1:8b', tokensIn: 10 });
     expect(requests[0]?.url).toBe('http://localhost:11434/api/chat');
     expect(requests[0]?.body).toMatchObject({ stream: false, format: InterpretJsonSchema });
