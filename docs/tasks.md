@@ -6,14 +6,14 @@ matching board card, not in this file.
 **How to read a ticket:** **Size** S (under 2 h), M (half a day), L (1 to 2 days). **Depends on**: tickets that must be
 done first. **Done when**: the check a reviewer from another role ticks off.
 
-**Status (2026-11-20):** the platform is built and tested locally: API, worker, web UI, Docker images (see
+**Status (2026-11-20):** the platform is built, tested and running as a local Docker demo: API, worker, web UI (see
 [architecture.md](architecture.md) and AGENT.md §17). What's left is real testing against the target, prompt work,
 deployment, evidence and the documents. Tickets already done are listed at the end of each section for reference.
 
 | Role | Main responsibilities | Open tickets |
 |---|---|---|
 | Project lead | Coordination, approvals, documentation, presentation | PL-1 … PL-8 |
-| Frontend developer | `apps/web`: polish, accessibility, demo readiness | FE-1 … FE-5 |
+| Frontend developer | `apps/web`: polish, accessibility, demo readiness | FE-2 … FE-5 (FE-1 done) |
 | Backend and database | `apps/api`, `apps/worker`, `packages/shared`, deployment | BE-2 … BE-7 (BE-1 done) |
 | Security tester | Recon, scans, manual WSTG tests, verification, evidence | ST-1 … ST-11 |
 | AI integration | Prompts, AI quality, data handling, AI write-up | AI-1 … AI-8 |
@@ -35,11 +35,12 @@ deployment, evidence and the documents. Tickets already done are listed at the e
 
 ## Frontend developer (FE)
 
-The UI is built (`apps/web`, AGENT.md §10). These tickets polish it for the demo.
+The UI is built (`apps/web`, AGENT.md §10) and redesigned (Swiss editorial, moderation queue). These tickets polish it
+for the demo. Done: FE-1 mobile and accessibility pass (no horizontal scroll at 375 px on the main pages, keyboard
+navigation, dialogs, focus states).
 
 | ID | Ticket | Size | Depends on | Done when |
 |---|---|---|---|---|
-| FE-1 | **Mobile and accessibility pass.** Check every page at 375 px, keyboard-only use, and colour contrast. | M | – | No horizontal scroll at 375 px; every control reachable by keyboard; issues fixed or ticketed. |
 | FE-2 | **"Use as evidence" from a scan result.** On scan detail, a button that attaches a result to a chosen finding (`POST /findings/:id/evidence` with `scan_result_id`). | M | – | A header result can be attached to a manual finding in two clicks. |
 | FE-3 | **Return to the original page after sign-in.** Today sign-in always lands on the dashboard. | S | – | Opening a finding link while signed out returns to that finding after sign-in. |
 | FE-4 | **Report PDF check.** Print the report from Chrome and Edge; fix page breaks, long URLs and evidence images. | S | ST-8 | The PDF is good enough to attach to Deliverable 5. |
@@ -58,8 +59,10 @@ The UI is built (`apps/web`, AGENT.md §10). These tickets polish it for the dem
 
 Done: schema and migrations, auth (lockout, rotating refresh tokens), roles, audit log, scope engine, all five tools,
 imports with redaction, job queue, AI pipeline with cap and 503, findings verification, retest, dashboard, report,
-Dockerfiles, 165+ automated tests, generated [schema.md](schema.md), local-only Docker deployment (BE-1, ADR 0002,
-[demo.md](demo.md)) with password change.
+Dockerfiles, 210+ automated tests, generated [schema.md](schema.md), local-only Docker deployment (BE-1, ADR 0002,
+[demo.md](demo.md)) with password change, AI provider settings with an encrypted key, one-click full assessment,
+automatic findings with suggested CVSS / fix / tool-reported CVEs, automatic AI interpretation, OpenAPI discovery on
+in-scope API hosts.
 
 ## Security tester (ST)
 
@@ -97,7 +100,7 @@ Work in `apps/worker/src/ai/prompts/` and **commit the prompts** (see its README
 
 ## Suggested order
 
-1. **Week 1:** PL-1 to PL-4, PL-7, BE-2, BE-6, AI-1, AI-2, ST-1, ST-2, FE-1
+1. **Week 1:** PL-1 to PL-4, PL-7, BE-2, BE-6, AI-1, AI-2, ST-1, ST-2
 2. **Week 2:** BE-3, BE-4, ST-3 to ST-5, AI-3 to AI-5, FE-2, FE-3
 3. **Week 3:** ST-6 to ST-9, AI-6, BE-5, BE-7, FE-4, FE-5
 4. **Week 4:** ST-10, ST-11, AI-7, PL-8, final rehearsal
