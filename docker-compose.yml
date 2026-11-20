@@ -95,7 +95,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-tanaw}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-tanaw}
       REDIS_URL: redis://redis:6379
       ZAP_API_URL: http://zap:8090
-      # Ollama on the host, if used (AI_PROVIDER=ollama)
+      # Ollama on the host, if Settings picks it
       OLLAMA_URL: ${OLLAMA_DOCKER_URL:-http://host.docker.internal:11434}
     extra_hosts:
       - "host.docker.internal:host-gateway"

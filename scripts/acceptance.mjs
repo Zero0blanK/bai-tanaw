@@ -232,7 +232,7 @@ async function main() {
   await check('X1', 'AI interpretation: 503 without a key, 202 with one', async () => {
     if (!ctx.httpScan) return { skip: 'no finished scan' };
     const res = await call('POST', `/scans/${ctx.httpScan.id}/interpret`, { token: ctx.assessor });
-    if (res.status === 503) return '503, AI not configured (expected without OPENAI_API_KEY)';
+    if (res.status === 503) return '503, AI not configured (expected until an admin saves a key in Settings)';
     status(res, 202);
     const job = await waitForJob(ctx.assessor, res.body.data.job.id, 120_000);
     expect(job.status === 'COMPLETED', `AI job ${job.status}: ${job.failed_reason}`);
