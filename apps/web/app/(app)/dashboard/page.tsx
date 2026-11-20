@@ -12,6 +12,8 @@ import { Card, CardHeader, FigureStrip } from '@/components/ui/card';
 import { Alert, Empty, SkeletonRows, Spinner } from '@/components/ui/feedback';
 import { Label, Select } from '@/components/ui/form';
 import { useApi } from '@/hooks/useApi';
+import { useReloadOn } from '@/hooks/useReloadOn';
+import { PENDING_CHANGED_EVENT } from '@/lib/api';
 import { humanize } from '@/lib/utils';
 import type { Counts, Dashboard, Finding, Target } from '@/types/api';
 
@@ -36,6 +38,7 @@ function age(iso: string): string {
 /** The latest findings waiting for a decision, newest first. Each opens in the Findings queue. */
 function Queue({ targetId }: { targetId: string }) {
   const queue = useApi<Finding[]>('/findings', { target_id: targetId, status: 'PENDING', limit: 6 });
+  useReloadOn(PENDING_CHANGED_EVENT, queue.reload);
   const href = `/findings?${targetId ? `target_id=${targetId}&` : ''}status=PENDING`;
   return (
     <Card className="lg:col-span-8">
@@ -139,6 +142,7 @@ export default function DashboardPage() {
   const targets = useApi<Target[]>('/targets');
   const [targetId, setTargetId] = useState('');
   const dash = useApi<Dashboard>('/dashboard', { target_id: targetId });
+  useReloadOn(PENDING_CHANGED_EVENT, dash.reload);
   const q = targetId ? `target_id=${targetId}&` : '';
 
   return (

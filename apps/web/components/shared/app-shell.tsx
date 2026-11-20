@@ -19,10 +19,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Menu } from '@/components/ui/menu';
 import { Tooltip } from '@/components/ui/tooltip';
-import { api } from '@/lib/api';
+import { api, DATA_CHANGED_EVENT, PENDING_CHANGED_EVENT } from '@/lib/api';
 import { cn, humanize } from '@/lib/utils';
 import type { Dashboard } from '@/types/api';
 import { useAuth } from './auth-provider';
@@ -158,16 +158,38 @@ export function AppShell({ children }: { children: ReactNode }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [drawer]);
-  // The waiting-for-verification count, refreshed on every navigation (real data, not a notification feed).
-  useEffect(() => {
-    let cancelled = false;
+  // The waiting-for-verification count (real data, not a notification feed). Refreshed on navigation, right after
+  // any change made in the app, when the tab becomes visible again, and every 15 s while it is visible, so findings
+  // the worker creates during an assessment show up without a reload.
+  const lastPending = useRef<number | null>(null);
+  const loadPending = useCallback(() => {
     void api<Dashboard>('/dashboard')
-      .then((r) => !cancelled && setPending(r.data.totals.pending_review))
-      .catch(() => !cancelled && setPending(null));
-    return () => {
-      cancelled = true;
+      .then((r) => {
+        const next = r.data.totals.pending_review;
+        if (lastPending.current !== null && lastPending.current !== next) window.dispatchEvent(new Event(PENDING_CHANGED_EVENT));
+        lastPending.current = next;
+        setPending(next);
+      })
+      .catch(() => setPending(null));
+  }, []);
+  useEffect(() => loadPending(), [pathname, loadPending]);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadPending();
     };
-  }, [pathname]);
+    window.addEventListener(DATA_CHANGED_EVENT, loadPending);
+    window.addEventListener('focus', loadPending);
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') loadPending();
+    }, 15_000);
+    return () => {
+      window.removeEventListener(DATA_CHANGED_EVENT, loadPending);
+      window.removeEventListener('focus', loadPending);
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(timer);
+    };
+  }, [loadPending]);
 
   const isActive = useCallback((href: string) => pathname === href || pathname.startsWith(`${href}/`), [pathname]);
   const groups = useMemo(

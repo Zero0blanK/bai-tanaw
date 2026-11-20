@@ -99,11 +99,19 @@ async function toError(res: Response): Promise<ApiError> {
   }
 }
 
+/** Fired on window after any successful change request, so live counters (e.g. "to verify") refresh at once. */
+export const DATA_CHANGED_EVENT = 'tanaw:data-changed';
+/** Fired by the app shell when the "to verify" count changes, so open lists of findings reload too. */
+export const PENDING_CHANGED_EVENT = 'tanaw:pending-changed';
+
 /** JSON request; returns `data` (and `meta` for paginated lists). Throws ApiError. */
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<{ data: T; meta?: PaginationMeta; message?: string }> {
   const res = await sendWithRefresh(path, options);
   if (!res.ok) throw await toError(res);
   const body = (await res.json()) as ApiResponse<T>;
+  if ((options.method ?? 'GET') !== 'GET' && !path.startsWith('/auth/') && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
+  }
   return { data: body.data, ...(body.meta ? { meta: body.meta } : {}), ...(body.message ? { message: body.message } : {}) };
 }
 

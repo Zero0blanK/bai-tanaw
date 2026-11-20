@@ -18,6 +18,8 @@ import { Label, SearchInput, Select } from '@/components/ui/form';
 import { Tabs } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/toast';
 import { useApi } from '@/hooks/useApi';
+import { useReloadOn } from '@/hooks/useReloadOn';
+import { PENDING_CHANGED_EVENT } from '@/lib/api';
 import { cn, formatDate, formatDateTime } from '@/lib/utils';
 import type { Finding, FindingDetail, Target } from '@/types/api';
 
@@ -199,6 +201,7 @@ function FindingsView() {
   const page = Number(params.get('page') ?? 1) || 1;
   const targets = useApi<Target[]>('/targets');
   const findings = useApi<Finding[]>('/findings', { ...filters, page, limit: 25 });
+  useReloadOn(PENDING_CHANGED_EVENT, findings.reload);
   const [search, setSearch] = useState(filters.q);
   const [selected, setSelected] = useState<string | null>(params.get('focus'));
   const canVerify = can('ADMIN', 'ASSESSOR');
