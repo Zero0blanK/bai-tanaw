@@ -91,8 +91,8 @@ export const AiSettingsBody = z
   .refine((b) => !(b.api_key && b.clear_key), { path: ['clear_key'], message: 'send a new key or clear it, not both' });
 
 export const CreateUserBody = z.object({
-  email: z.email().trim().toLowerCase().max(254),
-  name: z.string().trim().min(2).max(120),
+  email: z.email('Enter a valid email address').trim().toLowerCase().max(254),
+  name: z.string('Enter a name').trim().min(2, 'Name must be at least 2 characters').max(120, 'Name must be at most 120 characters'),
   password: passwordSchema,
   role: z.enum(ROLES),
 });
@@ -111,8 +111,8 @@ const optionalDate = z.coerce.date().optional();
 
 export const CreateTargetBody = z
   .object({
-    name: z.string().trim().min(2).max(120),
-    base_url: httpUrl('base_url'),
+    name: z.string('Enter a name').trim().min(2, 'Name must be at least 2 characters').max(120, 'Name must be at most 120 characters'),
+    base_url: httpUrl('Base URL'),
     description: z.string().max(2000).optional(),
     authorization_note: z.string().max(2000).optional(),
     test_window_start: optionalDate,
@@ -185,6 +185,8 @@ export const ListFindingsQuery = paginationQuery.extend({
   status: z.enum(FINDING_STATUSES).optional(),
   category: z.enum(FINDING_CATEGORIES).optional(),
   source: z.enum(FINDING_SOURCES).optional(),
+  /** Text search over title, affected asset and description (case-insensitive). */
+  q: z.string().trim().min(1).max(100).optional(),
 });
 
 export const CreateFindingBody = z.object({

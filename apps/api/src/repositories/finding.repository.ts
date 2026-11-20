@@ -10,6 +10,7 @@ export interface FindingFilters {
   status?: FindingStatus | undefined;
   category?: FindingCategory | undefined;
   source?: FindingSource | undefined;
+  q?: string | undefined;
   page: number;
   limit: number;
 }
@@ -21,6 +22,15 @@ export const findingRepository = {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.category ? { category: filters.category } : {}),
       ...(filters.source ? { source: filters.source } : {}),
+      ...(filters.q
+        ? {
+            OR: [
+              { title: { contains: filters.q, mode: 'insensitive' as const } },
+              { affected_asset: { contains: filters.q, mode: 'insensitive' as const } },
+              { description: { contains: filters.q, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
     };
     const [items, total] = await prisma.$transaction([
       prisma.finding.findMany({

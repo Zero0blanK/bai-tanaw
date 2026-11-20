@@ -71,6 +71,10 @@ describe.skipIf(!hasTestDb)('findings, verification, evidence, dashboard and rep
       const cfg = await as(request(app).get('/api/findings?category=SECURITY_CONFIG'));
       expect(cfg.body.data.map((x: { title: string }) => x.title)).toEqual(['Missing HSTS header']);
       expect((await as(request(app).get('/api/findings?status=NOPE'))).status).toBe(400);
+
+      const hits = await as(request(app).get('/api/findings?q=hsts'));
+      expect(hits.body.data.map((x: { title: string }) => x.title)).toEqual(['Missing HSTS header']);
+      expect((await as(request(app).get('/api/findings?q=nothing-matches-this'))).body.meta.total).toBe(0);
     });
 
     it('rejects a scan from another target and unknown targets', async () => {
