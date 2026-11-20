@@ -252,6 +252,15 @@ model Finding {
   /// Only PATCH /api/findings/:id/verify changes this. AI and tools only ever create PENDING.
   status         FindingStatus   @default(PENDING)
   remediation    String?
+  /// Filled automatically when the finding is raised (tool rule, ZAP solution or the AI). A suggestion only:
+  /// `remediation` changes when an assessor accepts or edits it.
+  suggested_remediation String?
+  /// CVSS v3.1 vector suggested when the finding is raised (tool rule or AI); Tanaw computes the score itself.
+  /// The assessor's confirmed values are `cvss_vector` / `cvss_score`.
+  suggested_cvss_vector String?
+  suggested_cvss_score  Float?
+  /// CVE IDs found in the scan output behind this finding (never invented by the AI).
+  cve_ids        String[]        @default([])
   /// "Same problem on the same asset" key from the tool rules (or "ai:<title>"), used so re-scans don't duplicate
   /// open findings. Null for manual findings.
   fingerprint    String?

@@ -189,6 +189,10 @@ export async function createToolFindings(
         owasp_top10: c.owasp_top10,
         wstg_id: c.wstg_id,
         fingerprint: c.fingerprint,
+        suggested_cvss_vector: c.cvss_vector,
+        suggested_cvss_score: c.cvss_score,
+        suggested_remediation: c.remediation,
+        cve_ids: c.cve_ids,
       },
     });
     ids.push(finding.id);

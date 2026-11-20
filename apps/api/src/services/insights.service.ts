@@ -103,6 +103,7 @@ export const insightsService = {
           affected_asset: f.affected_asset,
           description: f.description,
           remediation: f.remediation,
+          cve_ids: f.cve_ids,
           verified: lastDecision
             ? { by: lastDecision.assessor?.name ?? 'deleted user', at: lastDecision.created_at, status: lastDecision.new_status, notes: lastDecision.notes }
             : null,

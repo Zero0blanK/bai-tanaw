@@ -149,6 +149,10 @@ Indexes: `index (scan_id, type)`.
 | `wstg_id` | String | yes |  |  |
 | `status` | enum [FindingStatus](#enum-findingstatus) | no | `PENDING` | Only PATCH /api/findings/:id/verify changes this. AI and tools only ever create PENDING. |
 | `remediation` | String | yes |  |  |
+| `suggested_remediation` | String | yes |  | Filled automatically when the finding is raised (tool rule, ZAP solution or the AI). A suggestion only:\n`remediation` changes when an assessor accepts or edits it. |
+| `suggested_cvss_vector` | String | yes |  | CVSS v3.1 vector suggested when the finding is raised (tool rule or AI); Tanaw computes the score itself.\nThe assessor's confirmed values are `cvss_vector` / `cvss_score`. |
+| `suggested_cvss_score` | Float | yes |  |  |
+| `cve_ids` | String[] | no | `` | CVE IDs found in the scan output behind this finding (never invented by the AI). |
 | `fingerprint` | String | yes |  | "Same problem on the same asset" key from the tool rules (or "ai:<title>"), used so re-scans don't duplicate\nopen findings. Null for manual findings. |
 | `created_at` | DateTime | no | now() |  |
 | `updated_at` | DateTime | no | auto (updated at) |  |
