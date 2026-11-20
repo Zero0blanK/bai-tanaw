@@ -94,7 +94,7 @@ export function RemediationPanel({ finding, canEdit, onSaved }: { finding: Findi
     <Card>
       <CardHeader
         title="Remediation"
-        description="AI drafts are suggestions. Nothing changes until you accept or write the remediation."
+        description="Suggestions come from the tool rule, ZAP or the AI. Nothing goes into the report until you accept or write it."
         actions={
           canEdit && (
             <>
@@ -128,8 +128,30 @@ export function RemediationPanel({ finding, canEdit, onSaved }: { finding: Findi
           </div>
         ) : finding.remediation ? (
           <pre className="whitespace-pre-wrap font-sans text-sm text-ink-800">{finding.remediation}</pre>
+        ) : finding.suggested_remediation ? (
+          <div className="space-y-3 border-l-[3px] border-black bg-ink-50 p-4">
+            <p className="text-xs font-bold text-black">Suggested fix ({finding.source === 'AI' ? 'from the AI' : finding.source === 'TOOL' ? 'from the tool rule' : 'suggested'}), not accepted yet</p>
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink-800">{finding.suggested_remediation}</pre>
+            {canEdit && (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => void save({ remediation: finding.suggested_remediation ?? '' })} loading={busy === 'manual'} disabled={(finding.suggested_remediation ?? '').trim().length < 10}>
+                  Accept suggestion
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setText(finding.suggested_remediation ?? '');
+                    setEditing(true);
+                  }}
+                >
+                  Edit before accepting
+                </Button>
+              </div>
+            )}
+          </div>
         ) : (
-          <p className="text-sm text-ink-500">No remediation yet.</p>
+          <p className="text-sm text-ink-500">No remediation yet. Use Suggest fix for an AI draft, or write one.</p>
         )}
         {drafts.data?.map((a) => (
           <Draft key={a.id} analysis={a} accepting={busy === a.id} {...(canEdit ? { onAccept: () => void save({ analysis_id: a.id }) } : {})} />

@@ -7,6 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { AiUnverifiedBadge, CATEGORY_LABEL, FindingStatusBadge, SeverityBadge, SourceBadge } from '@/components/shared/badges';
 import { useAuth } from '@/components/shared/auth-provider';
 import { JobBanner } from '@/components/shared/job-banner';
+import { CveList } from '@/components/findings/cve-list';
 import { PageHeader } from '@/components/shared/page';
 import { EvidencePanel } from '@/components/findings/evidence-panel';
 import { RemediationPanel } from '@/components/findings/remediation-panel';
@@ -135,7 +136,9 @@ export default function FindingDetailPage() {
                     [
                       ['Final severity', <SeverityBadge key="fs" severity={f.final_severity} />],
                       ['Suggested', <SeverityBadge key="as" severity={f.ai_severity} />],
-                      ['CVSS v3.1', f.cvss_score !== null ? <span key="c"><span className="font-bold tabular-nums text-black">{f.cvss_score}</span> <span className="block font-mono text-[11px] break-all text-ink-500">{f.cvss_vector}</span></span> : '-'],
+                      ['CVSS v3.1', f.cvss_score !== null ? <span key="c"><span className="font-bold tabular-nums text-black">{f.cvss_score}</span> <span className="block font-mono text-[11px] break-all text-ink-500">{f.cvss_vector}</span></span> : 'Set when confirmed'],
+                      ['Suggested CVSS', f.suggested_cvss_score !== null ? <span key="sc"><span className="font-bold tabular-nums text-black">{f.suggested_cvss_score.toFixed(1)}</span> <span className="block font-mono text-[11px] break-all text-ink-500">{f.suggested_cvss_vector}</span></span> : 'None (informational)'],
+                      ['CVE', <CveList key="cve" ids={f.cve_ids} />],
                       ['Category', CATEGORY_LABEL[f.category]],
                       ['OWASP / WSTG', [f.owasp_top10, f.wstg_id].filter(Boolean).join(' / ') || '-'],
                       ['From scan', f.scan ? <Link key="s" href={`/scans/${f.scan.id}`} className="font-semibold text-black underline underline-offset-4">{humanize(f.scan.tool)}</Link> : 'Manual'],

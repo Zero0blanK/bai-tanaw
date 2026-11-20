@@ -123,6 +123,7 @@ export default function ReportPage() {
                   </div>
                   <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-ink-700 sm:grid-cols-2">
                     <div>Category: {CATEGORY_LABEL[f.category]}</div>
+                    {f.cve_ids.length > 0 && <div>CVE: {f.cve_ids.join(', ')}</div>}
                     <div>
                       CVSS v3.1: {f.cvss_score ?? '-'} {f.cvss_vector && <span className="font-mono">({f.cvss_vector})</span>}
                     </div>

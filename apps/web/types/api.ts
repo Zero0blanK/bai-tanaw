@@ -136,6 +136,12 @@ export interface Finding {
   wstg_id: string | null;
   status: FindingStatus;
   remediation: string | null;
+  /** Filled automatically when the finding is raised; accepted into `remediation` by an assessor. */
+  suggested_remediation: string | null;
+  suggested_cvss_vector: string | null;
+  suggested_cvss_score: number | null;
+  /** CVE IDs named by the tool output behind the finding. */
+  cve_ids: string[];
   created_at: string;
   updated_at: string;
   target?: { id: string; name: string; base_url?: string };
@@ -202,6 +208,7 @@ export interface ReportFinding {
   affected_asset: string;
   description: string;
   remediation: string | null;
+  cve_ids: string[];
   verified: { by: string; at: string; status: FindingStatus; notes: string } | null;
   history: Array<{ from: FindingStatus; to: FindingStatus; by: string; at: string; notes: string }>;
   evidence: Array<{ id: string; type: EvidenceType; has_file: boolean; file_url: string | null; content: string | null; created_at: string }>;

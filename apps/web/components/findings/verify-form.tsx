@@ -20,7 +20,8 @@ const HELP: Partial<Record<FindingStatus, string>> = {
 export function VerifyForm({ finding, onSaved }: { finding: FindingDetail; onSaved: () => void }) {
   const options = finding.allowed_transitions;
   const [status, setStatus] = useState<FindingStatus>(options[0] ?? 'CONFIRMED');
-  const [vector, setVector] = useState(finding.cvss_vector ?? '');
+  // Start from the suggested vector (tool rule or AI) so the score is ready; the assessor can change it.
+  const [vector, setVector] = useState(finding.cvss_vector ?? finding.suggested_cvss_vector ?? '');
   const [score, setScore] = useState(finding.cvss_score !== null ? String(finding.cvss_score) : '');
   const [severity, setSeverity] = useState<Severity | ''>(finding.final_severity ?? finding.ai_severity ?? '');
   const [error, setError] = useState<string | null>(null);

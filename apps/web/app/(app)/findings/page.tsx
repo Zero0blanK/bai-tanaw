@@ -5,6 +5,7 @@ import { ArrowRight, Paperclip, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { CveList, CvssTag } from '@/components/findings/cve-list';
 import { DecisionDialog, type QuickDecision } from '@/components/findings/decision-dialog';
 import { ManualFindingForm } from '@/components/findings/manual-finding-form';
 import { useAuth } from '@/components/shared/auth-provider';
@@ -51,6 +52,8 @@ function RowBody({ f, selected }: { f: Finding; selected: boolean }) {
         </span>
         <span className="mt-2 flex flex-wrap items-center gap-2">
           <SeverityBadge severity={severity} {...(f.final_severity ? {} : { prefix: 'Suggested' })} />
+          {f.cvss_score !== null ? <CvssTag score={f.cvss_score} vector={f.cvss_vector} /> : <CvssTag score={f.suggested_cvss_score} vector={f.suggested_cvss_vector} />}
+          {f.cve_ids.length > 0 && <span className="text-xs font-bold text-black">{f.cve_ids.length === 1 ? f.cve_ids[0] : `${f.cve_ids.length} CVEs`}</span>}
           <span className="text-xs text-ink-500">{SOURCE_LABEL[f.source]}</span>
           {f.status !== 'PENDING' && <FindingStatusBadge status={f.status} />}
         </span>
@@ -117,6 +120,18 @@ function Preview({ id, canVerify, onDecided }: { id: string; canVerify: boolean;
           items={[
             ['Target', f.target?.name ?? '-'],
             ['Category', CATEGORY_LABEL[f.category]],
+            [
+              f.cvss_score !== null ? 'CVSS v3.1' : 'CVSS v3.1 (suggested)',
+              f.cvss_score !== null || f.suggested_cvss_score !== null ? (
+                <span key="cvss">
+                  <span className="font-bold tabular-nums text-black">{(f.cvss_score ?? f.suggested_cvss_score ?? 0).toFixed(1)}</span>
+                  <span className="block font-mono text-[11px] break-all text-ink-500">{f.cvss_vector ?? f.suggested_cvss_vector}</span>
+                </span>
+              ) : (
+                'Not scored (informational)'
+              ),
+            ],
+            ['CVE', <CveList key="cve" ids={f.cve_ids} compact />],
             ['OWASP Top 10 / WSTG', [f.owasp_top10, f.wstg_id].filter(Boolean).join(' / ') || '-'],
             ['Evidence', `${f.evidence.length} item${f.evidence.length === 1 ? '' : 's'}`],
             ['From scan', f.scan ? `${f.scan.tool.replace('_', ' ')}, ${formatDateTime(f.scan.created_at)}` : 'Manual'],
@@ -127,6 +142,14 @@ function Preview({ id, canVerify, onDecided }: { id: string; canVerify: boolean;
 
       <h3 className="mt-6 border-b border-black pb-1 text-sm font-bold text-black">What was found</h3>
       <p className="mt-3 max-w-prose text-sm leading-relaxed whitespace-pre-line text-ink-800">{f.description}</p>
+
+      {(f.remediation || f.suggested_remediation) && (
+        <>
+          <h3 className="mt-6 border-b border-black pb-1 text-sm font-bold text-black">{f.remediation ? 'Remediation' : 'Suggested fix'}</h3>
+          <p className="mt-3 max-w-prose text-sm leading-relaxed whitespace-pre-line text-ink-800">{f.remediation ?? f.suggested_remediation}</p>
+          {!f.remediation && <p className="mt-1 text-xs text-ink-500">Not accepted yet. Accept or edit it on the finding page.</p>}
+        </>
+      )}
 
       {f.verification_logs.length > 0 && (
         <>
